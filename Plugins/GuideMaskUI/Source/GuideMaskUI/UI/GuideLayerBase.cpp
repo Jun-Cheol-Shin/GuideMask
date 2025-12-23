@@ -8,7 +8,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/SizeBox.h"
 
-void UGuideLayerBase::SetGuide(const FGeometry& InGeometry, UWidget* InWidget)
+void UGuideLayerBase::SetGuide(const FGeometry& InViewportGeometry, UWidget* InWidget)
 {
 	if (nullptr == LayerPanel || nullptr == InWidget) return;
 
@@ -16,15 +16,15 @@ void UGuideLayerBase::SetGuide(const FGeometry& InGeometry, UWidget* InWidget)
 	InWidget->ForceLayoutPrepass();
 
 	// Get target location
-	FVector2D TargetLocalPosition = InGeometry.AbsoluteToLocal(InWidget->GetTickSpaceGeometry().AbsolutePosition);
-	FVector2D TargetLocation = InGeometry.GetLocalPositionAtCoordinates(FVector2D(0, 0)) + TargetLocalPosition;
+	FVector2D TargetLocalPosition = InViewportGeometry.AbsoluteToLocal(InWidget->GetTickSpaceGeometry().AbsolutePosition);
+	FVector2D TargetLocation = InViewportGeometry.GetLocalPositionAtCoordinates(FVector2D(0, 0)) + TargetLocalPosition;
 
 	// Get screen size
-	FVector2D ScreenSize = InGeometry.GetLocalPositionAtCoordinates(FVector2D(0.5, 0.5)) * 2.f;
+	FVector2D ScreenSize = InViewportGeometry.GetLocalPositionAtCoordinates(FVector2D(0.5, 0.5)) * 2.f;
 
 	// Get target size
-	FVector2D TargetLocalBottomRight = InGeometry.AbsoluteToLocal(InWidget->GetTickSpaceGeometry().LocalToAbsolute(InWidget->GetTickSpaceGeometry().GetLocalSize()));
-	FVector2D TargetLocalTopLeft = InGeometry.AbsoluteToLocal(InWidget->GetTickSpaceGeometry().GetAbsolutePosition());
+	FVector2D TargetLocalBottomRight = InViewportGeometry.AbsoluteToLocal(InWidget->GetTickSpaceGeometry().LocalToAbsolute(InWidget->GetTickSpaceGeometry().GetLocalSize()));
+	FVector2D TargetLocalTopLeft = InViewportGeometry.AbsoluteToLocal(InWidget->GetTickSpaceGeometry().GetAbsolutePosition());
 	FVector2D TargetLocalSize = TargetLocalBottomRight - TargetLocalTopLeft;
 
 	SetGuideLayer(ScreenSize, TargetLocation, TargetLocalSize);

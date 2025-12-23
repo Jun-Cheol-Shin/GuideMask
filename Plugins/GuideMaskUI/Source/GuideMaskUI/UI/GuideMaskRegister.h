@@ -33,7 +33,7 @@ protected:
 	virtual void SynchronizeProperties() override;
 
 #if WITH_EDITOR
-	void CreatePreviewLayer();
+	void CreatePreviewLayer(const FGeometry& InViewportGeometry);
 
 	virtual const FText GetPaletteCategory() override;
 	virtual void ValidateCompiledDefaults(IWidgetCompilerLog& CompileLog) const override;

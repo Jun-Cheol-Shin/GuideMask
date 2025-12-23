@@ -10,6 +10,8 @@
 #include "Components/DynamicEntryBox.h"
 #include "Components/WrapBox.h"
 
+#include "../EntryGuideIdentifiable.h"
+
 #define LOCTEXT_NAMESPACE "GuideMaskRegister"
 
 #if WITH_EDITOR
@@ -41,21 +43,22 @@ void UGuideMaskRegister::ShowPreviewDebug()
 	ForceLayoutPrepass();
 
 	const UGuideMaskSettings* Settings = GetDefault<UGuideMaskSettings>();
-	if (ensureAlways(Settings))
+	if (ensureAlways(Settings) && Settings->DefaultLayer.ToSoftObjectPath().IsValid())
 	{
-		if (Settings->DefaultLayer.ToSoftObjectPath().IsValid())
+		UWidget* ContentWidget = GetContent();
+		if (ContentWidget && ContentWidget->GetCachedWidget())
 		{
 			FStreamableManager& StreamableManager = UAssetManager::Get().GetStreamableManager();
 			TSharedPtr<FStreamableHandle> StreamingHandle = StreamableManager.RequestAsyncLoad(Settings->DefaultLayer.ToSoftObjectPath(), FStreamableDelegate::CreateWeakLambda(this,
-				[this]()
+				[this, Geometry = ContentWidget->GetCachedWidget()->GetTickSpaceGeometry()]()
 				{
-					CreatePreviewLayer();
+					CreatePreviewLayer(Geometry);
 				}));
 		}
 	}
 }
 
-void UGuideMaskRegister::CreatePreviewLayer()
+void UGuideMaskRegister::CreatePreviewLayer(const FGeometry& InViewportGeometry)
 {
 	const UGuideMaskSettings* Settings = GetDefault<UGuideMaskSettings>();
 	if (!ensureAlways(Settings))
@@ -65,19 +68,14 @@ void UGuideMaskRegister::CreatePreviewLayer()
 
 	if (UGuideLayerBase* Layer = CreateWidget<UGuideLayerBase>(GetWorld(), Settings->DefaultLayer.Get()))
 	{
-		UWidget* ContentWidget = GetContent();
-		if (ContentWidget && 
-			ContentWidget->GetCachedWidget())
+		if (TagWidgetList.Contains(PreviewWidgetTag))
 		{
-			if (TagWidgetList.Contains(PreviewWidgetTag))
-			{
-				UWidget* FoundWidget = TagWidgetList[PreviewWidgetTag];
+			UWidget* FoundWidget = TagWidgetList[PreviewWidgetTag];
 
-				if (FoundWidget)
-				{
-					SetLayer(Layer);
-					Layer->SetGuide(ContentWidget->GetCachedWidget()->GetTickSpaceGeometry(), FoundWidget);
-				}
+			if (FoundWidget)
+			{
+				SetLayer(Layer);
+				Layer->SetGuide(/*ContentWidget->GetCachedWidget()->GetTickSpaceGeometry()*/ InViewportGeometry, FoundWidget);
 			}
 		}
 	}
@@ -111,17 +109,18 @@ void UGuideMaskRegister::ValidateCompiledDefaults(IWidgetCompilerLog& CompileLog
 	{
 		if (UTreeView* TreeView = Cast<UTreeView>(Widget))
 		{
-			TreeView->GetEntryWidgetClass();
+			if (TreeView->GetEntryWidgetClass())
+			{
+
+			}
 		}
 
 		else if (UListView* ListView = Cast<UListView>(Widget))
 		{
-			if (ListView->GetEntryWidgetClass() && ListView->GetEntryWidgetClass()->GetDefaultObject())
+			if (ListView->GetEntryWidgetClass())
 			{
-				if (ListView->GetEntryWidgetClass()->ImplementsInterface(UUserObjectListEntry::StaticClass()))
-				{
-					//ListView->GetItem
-				}
+				// TODO : 인터페이스 상속 체크 EntryGuideIdentifiable
+
 			}
  		}
 
@@ -131,20 +130,23 @@ void UGuideMaskRegister::ValidateCompiledDefaults(IWidgetCompilerLog& CompileLog
 		}
 	}
 	
-	/*
+	
 	if (UWidgetBlueprint* WidgetBlueprint = GetTypedOuter<UWidgetBlueprint>())
 	{
 		if (WidgetBlueprint->GeneratedClass)
 		{
-			if (false == WidgetBlueprint->GeneratedClass->ImplementsInterface(UGuideMaskable::StaticClass()))
+			if (WidgetBlueprint->GeneratedClass->ImplementsInterface(UEntryGuideIdentifiable::StaticClass()))
 			{
-				CompileLog.Error(LOCTEXT("GuideMaskRegister", "Not Implemented UI Guide Maskable Interface!"));
+				CompileLog.Error(LOCTEXT("GuideMaskRegister", "Do not Inherited EntryGuideIdentifiable Interface!"));
+			}
+
+			if (WidgetBlueprint->GeneratedClass->ImplementsInterface(UUserObjectListEntry::StaticClass()))
+			{
+				CompileLog.Error(LOCTEXT("GuideMaskRegister", "Do not Inherited UserObjectListEntry Interface!"));
 			}
 		}
 	}
-	*/
-
-
+	
 
 }
 #endif
