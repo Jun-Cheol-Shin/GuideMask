@@ -16,8 +16,7 @@ public class GuideUI : ModuleRules
 			"EnhancedInput", 
 			"GuideMaskUI",  
 			"Slate", 
-			"SlateCore",
-			"CommonUI" });
+			"SlateCore" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 

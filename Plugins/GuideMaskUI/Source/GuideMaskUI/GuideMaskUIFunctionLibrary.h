@@ -3,13 +3,31 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
 #include "../GuideMaskUI/UI/GuideBoxBase.h"
+#include "../GuideMaskUI/UI/GuideMaskRegister.h"
+
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "GuideMaskUIFunctionLibrary.generated.h"
 
-/**
- * 
- */
+
+DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FOnGetDynamicEntryDynamicEvent, UObject*, InEntryItem);
+
+
+USTRUCT(BlueprintType)
+struct FGuideNodePathParam
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere)
+	FOnGetDynamicEntryDynamicEvent OnGetDynamicEvent;
+
+	UPROPERTY(EditAnywhere)
+	int NestedWidgetIndex = -1;
+};
+
+
 
 class UGuideMaskRegister;
 class UListView;
@@ -26,20 +44,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Guide Mask UI Functions", meta = (WorldContext = "WorldContextObject"))
 	static void ShowGuideListEntry(const UObject* WorldContextObject, UListView* InTagListView, UObject* InListItem, const FGuideBoxActionParameters& InActionParam = FGuideBoxActionParameters(), int InLayerZOrder = 0, float InAsyncTimeout = 1.f);
-
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Guide Mask UI Functions", meta = (WorldContext = "WorldContextObject"))
+	static void ShowGuideNestedWidget(const UObject* WorldContextObject, UWidget* InWidget, const TArray<FGuideNodePathParam>& InParamList, const FGuideBoxActionParameters& InActionParam = FGuideBoxActionParameters(), int InLayerZOrder = 0, float InAsyncTimeout = 1.f);
 
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Guide Mask UI Functions", meta = (WorldContext = "WorldContextObject", DeterminesOutputType = "WidgetClass", DynamicOutputParam = "FoundWidgets"))
 	static void GetAllGuideRegisters(const UObject* WorldContextObject, TArray<UGuideMaskRegister*>& FoundWidgets);
 
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Guide Mask UI Functions", meta = (WorldContext = "WorldContextObject"))
-	static UWidget* GetTagWidget(const UObject* WorldContextObject, const FName& InTag, int InLevel = 1);
+	static UWidget* GetTagWidget(const UObject* WorldContextObject, const FName& InTag);
 
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Guide Mask UI Functions", meta = (WorldContext = "WorldContextObject"))
-	static TMap<int, UWidget*> GetWidgetTree(const UObject* WorldContextObject, UWidget* InWidget);
+	static UGuideMaskRegister* GetRegister(const UObject* WorldContextObject, const FName& InTag);
 
-	
-private:
-	static void ConstructTree(OUT TMap<int, UWidget*>& OutWidgetTree, const UObject* WorldContextObject, UWidget* InWidget, int& OutKey);
-	static void ForeachEntryClass(OUT TMap<int, UWidget*>& OutTree, const UObject* WorldContextObject, TSubclassOf<UUserWidget> InEntryClass, int& OutKey);
-	static void ForeachEntry(OUT TMap<int, UWidget*>& OutTree, const UObject* WorldContextObject, UUserWidget* InEntry, int& OutKey);
 };

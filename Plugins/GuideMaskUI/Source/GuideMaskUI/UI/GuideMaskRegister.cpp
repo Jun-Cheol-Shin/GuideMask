@@ -2,7 +2,6 @@
 
 
 #include "GuideMaskRegister.h"
-#include "../GuideMaskUIFunctionLibrary.h"
 #include "Components/PanelSlot.h"
 #include "Components/OverlaySlot.h"
 
@@ -12,6 +11,7 @@
 #include "Components/WrapBox.h"
 
 #include "../EntryGuideIdentifiable.h"
+#include "../GuideMaskUIFunctionLibrary.h"
 
 #define LOCTEXT_NAMESPACE "GuideMaskRegister"
 
@@ -73,34 +73,72 @@ void UGuideMaskRegister::CreatePreviewLayer(const FGeometry& InViewportGeometry)
 		return;
 	}
 
-	if (UGuideLayerBase* Layer = CreateWidget<UGuideLayerBase>(GetWorld(), Settings->DefaultLayer.Get()))
+	UGuideLayerBase* Layer = CreateWidget<UGuideLayerBase>(GetWorld(), Settings->DefaultLayer.Get());
+	if (nullptr == Layer)
 	{
-		UWidget** FoundWidget = TagWidgetList.Find(PreviewWidgetTag);
-		if (nullptr != FoundWidget && nullptr != *FoundWidget)
+		return;
+	}
+
+	if (false == TagWidgetList.Contains(PreviewWidgetTag))
+	{
+		return;
+	}
+
+	UWidget* TagWidget = TagWidgetList[PreviewWidgetTag];
+	if (nullptr == TagWidget)
+	{
+		return;
+	}
+
+	UWidget* Target = nullptr;
+
+	TArray<FGuideTreeNode> Tree;
+	ConstructWidgetTree(OUT Tree, TagWidget);
+
+
+	for (int i = 0; i < Tree.Num(); ++i)
+	{
+		UWidget* ScopeWidget = Tree[i].Scope;
+		if (nullptr == ScopeWidget)
 		{
-			TreeLevels = UGuideMaskUIFunctionLibrary::GetWidgetTree(GetWorld(), *FoundWidget);
-			UWidget** Widget = TreeLevels.Find(PreviewTreeLevel);
-
-			if (Widget && *Widget)
-			{
-				SetLayer(Layer);
-
-				UWidget* PreviewWidget = nullptr;
-
-				if (UListViewBase* ListView = Cast<UListViewBase>(*Widget))
-				{
-					PreviewWidget = false == ListView->GetDisplayedEntryWidgets().IsEmpty() ? *ListView->GetDisplayedEntryWidgets().begin() : nullptr;
-				}
-
-				else if (UDynamicEntryBox* EntryBox = Cast<UDynamicEntryBox>(*Widget))
-				{
-					PreviewWidget = false == EntryBox->GetAllEntries().IsEmpty() ? *EntryBox->GetAllEntries().begin() : nullptr;
-				}
-
-				Layer->SetGuide(InViewportGeometry, nullptr != PreviewWidget ? PreviewWidget : *Widget);
-			}
-
+			continue;
 		}
+
+		if (ScopeWidget->GetFName().IsEqual(PreviewNestedWidget))
+		{
+			Target = ScopeWidget;
+			break;
+		}
+
+		int Index = Tree[i].NestedWidgets.IndexOfByPredicate([this](UWidget* InChild)
+			{
+				return InChild && InChild->GetFName().IsEqual(PreviewNestedWidget);
+			});
+
+		if (INDEX_NONE != Index)
+		{
+			Target = Tree[i].NestedWidgets[Index];
+			break;
+		}
+	}
+
+	if (nullptr != Target)
+	{
+		SetLayer(Layer);
+
+		UWidget* PreviewWidget = nullptr;
+
+		if (UListViewBase* ListView = Cast<UListViewBase>(Target))
+		{
+			PreviewWidget = false == ListView->GetDisplayedEntryWidgets().IsEmpty() ? *ListView->GetDisplayedEntryWidgets().begin() : nullptr;
+		}
+
+		else if (UDynamicEntryBox* EntryBox = Cast<UDynamicEntryBox>(Target))
+		{
+			PreviewWidget = false == EntryBox->GetAllEntries().IsEmpty() ? *EntryBox->GetAllEntries().begin() : nullptr;
+		}
+
+		Layer->SetGuide(InViewportGeometry, nullptr != PreviewWidget ? PreviewWidget : Target);
 	}
 }
 
@@ -115,6 +153,42 @@ TArray<FName> UGuideMaskRegister::GetTagOptions() const
 		});
 
 	return TagList;
+}
+
+TArray<FName> UGuideMaskRegister::GetNestedWidgetOptions() const
+{
+	TArray<FName> NameList;
+	TArray<FGuideTreeNode> NewTree;
+
+	if (TagWidgetList.Contains(PreviewWidgetTag))
+	{
+		UWidget* TagWidget = TagWidgetList[PreviewWidgetTag];
+		ConstructWidgetTree(OUT NewTree, TagWidget);
+	}
+
+	for (int i = 0; i < NewTree.Num(); ++i)
+	{
+		FGuideTreeNode Node = NewTree[i];
+
+		if (nullptr == Node.Scope)
+		{
+			continue;
+		}
+
+		NameList.AddUnique(Node.Scope->GetFName());
+		for (int j = 0; j < Node.NestedWidgets.Num(); ++j)
+		{
+			UWidget* Child = Node.NestedWidgets[j];
+			if (nullptr == Child)
+			{
+				continue;
+			}
+
+			NameList.AddUnique(Child->GetFName());
+		}
+	}
+
+	return NameList;
 }
 
 const FText UGuideMaskRegister::GetPaletteCategory()
@@ -193,39 +267,84 @@ void UGuideMaskRegister::ValidateCompiledDefaults(IWidgetCompilerLog& CompileLog
 
 
 }
+
+
+void UGuideMaskRegister::ConstructWidgetTree(OUT TArray<FGuideTreeNode>& OutNodeTree, UWidget* InWidget) const
+{
+	if (nullptr == InWidget)
+	{
+		return;
+	}
+
+	FGuideTreeNode NewNode;
+	NewNode.Scope = InWidget;
+
+	TSubclassOf<UUserWidget> EntryClass = nullptr;
+	TArray<UUserWidget*> EntryList;
+
+	if (UListView* ListView = Cast<UListView>(InWidget))
+	{
+		EntryList = ListView->GetDisplayedEntryWidgets();
+		EntryClass = ListView->GetEntryWidgetClass();
+	}
+
+	else if (UDynamicEntryBox* EntryBox = Cast<UDynamicEntryBox>(InWidget))
+	{
+		EntryList = EntryBox->GetAllEntries();
+		EntryClass = EntryBox->GetEntryWidgetClass();
+	}
+
+
+	UUserWidget* Entry = 
+		true == EntryList.IsEmpty() ?
+		nullptr != EntryClass ? 
+		CreateWidget<UUserWidget>(GetWorld(), EntryClass) : nullptr : *EntryList.begin();
+
+	TArray<UWidget*> ContainerWidget {};
+
+	if (nullptr != Entry)
+	{
+		TArray<UWidget*> Childs;
+
+		if (true == Entry->GetClass()->ImplementsInterface(UEntryGuideIdentifiable::StaticClass()))
+		{
+			IEntryGuideIdentifiable::Execute_GetDesiredNestedWidgets(Entry, OUT Childs);
+		}
+
+		else if (IEntryGuideIdentifiable* Identify = Cast<IEntryGuideIdentifiable>(Entry))
+		{
+			Identify->GetDesiredNestedWidgets_Implementation(OUT Childs);
+		}
+
+		for (auto& Widget : Childs)
+		{
+			NewNode.NestedWidgets.Emplace(Widget);
+
+			UListView* ListView = Cast<UListView>(Widget);
+			UDynamicEntryBox* EntryBox = Cast<UDynamicEntryBox>(Widget);
+
+			if (ListView || EntryBox)
+			{
+				ContainerWidget.Emplace(Widget);
+			}
+		}
+	}
+
+	OutNodeTree.Emplace(NewNode);
+
+	for (int i = 0; i < ContainerWidget.Num(); ++i)
+	{
+		ConstructWidgetTree(OutNodeTree, ContainerWidget[i]);
+	}
+
+}
+
 #endif
 
 
 bool UGuideMaskRegister::IsContains(const FName& InTag) const
 {
 	return TagWidgetList.Contains(InTag);
-}
-
-UWidget* UGuideMaskRegister::GetTagWidget(const FName& InTag, int Level) const
-{
-	if (false == IsContains(InTag))
-	{
-		return nullptr;
-	}
-
-
-	UWidget* Widget = TagWidgetList.FindRef(InTag);
-	if (Level != 1)
-	{
-		TMap<int, UWidget*> NewTree = UGuideMaskUIFunctionLibrary::GetWidgetTree(GetWorld(), Widget);
-
-		if (NewTree.Contains(Level))
-		{
-			return NewTree[Level];
-		}
-	}
-
-	return Widget;
-}
-
-const TMap<FName, UWidget*>& UGuideMaskRegister::GetTagWidgetList() const
-{
-	return TagWidgetList;
 }
 
 TArray<FName> UGuideMaskRegister::GetTagList() const
@@ -236,6 +355,52 @@ TArray<FName> UGuideMaskRegister::GetTagList() const
 	return Retval;
 }
 
+UWidget* UGuideMaskRegister::GetTagWidget(const FName& InGuideTag)
+{
+	if (TagWidgetList.Contains(InGuideTag))
+	{
+		return TagWidgetList[InGuideTag];
+	}
+
+	return nullptr;
+}
+
+bool UGuideMaskRegister::GetGuideWidgetTree(OUT TArray<FGuideTreeNode>& OutWidgetTree, const FName& InGuideTag)
+{
+	if (TagWidgetList.Contains(InGuideTag))
+	{
+		ConstructWidgetTree(OUT OutWidgetTree, TagWidgetList[InGuideTag]);
+		return true;
+	}
+
+	return false;
+}
+
+bool UGuideMaskRegister::GetGuideWidgetList(OUT TArray<UWidget*>& OutWidgetList, const FName& InGuideTag)
+{
+	OutWidgetList.Reset();
+
+	if (TagWidgetList.Contains(InGuideTag))
+	{
+		TArray<FGuideTreeNode> NewTree;
+		ConstructWidgetTree(OUT NewTree, TagWidgetList[InGuideTag]);
+
+		OutWidgetList.Emplace(TagWidgetList[InGuideTag]);
+		for (int i = 0; i < NewTree.Num(); ++i)
+		{
+			FGuideTreeNode Node = NewTree[i];
+
+			for (int j = 0; j < Node.NestedWidgets.Num(); ++j)
+			{
+				OutWidgetList.Emplace(Node.NestedWidgets[j]);
+			}
+		}
+
+		return true;
+	}
+
+	return false;
+}
 
 void UGuideMaskRegister::SetLayer(UWidget* InLayer)
 {
@@ -316,18 +481,12 @@ void UGuideMaskRegister::SynchronizeProperties()
 
 #if WITH_EDITOR
 
-	TreeLevels.Reset();
+	GuideWidgetTree.Reset();
 
 	if (TagWidgetList.Contains(PreviewWidgetTag))
 	{
 		UWidget* Widget = TagWidgetList.FindRef(PreviewWidgetTag);
-		int Key = 1;
-
-		TreeLevels = UGuideMaskUIFunctionLibrary::GetWidgetTree(GetWorld(), Widget);
-		if (false == TreeLevels.Contains(PreviewTreeLevel))
-		{
-			PreviewTreeLevel = 1;
-		}
+		ConstructWidgetTree(OUT GuideWidgetTree, Widget);
 	}
 
 #endif 

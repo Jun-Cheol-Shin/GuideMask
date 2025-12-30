@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ContentWidget.h"
+
 #include "GuideMaskRegister.generated.h"
 
 /**
@@ -12,6 +13,20 @@
 
 
 class SOverlay;
+
+USTRUCT(BlueprintType)
+struct FGuideTreeNode
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UWidget* Scope = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TArray<UWidget*> NestedWidgets {};
+};
+
 
 
 UCLASS(meta = (DisplayName = "Guide Mask Register", Category = "Guide_Mask", AutoExpandCategories = "Guide Mask Setting"))
@@ -24,13 +39,13 @@ public:
 	bool IsContains(const FName& InTag) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
-	UWidget* GetTagWidget(const FName& InTag, int Level = 1) const;
-
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
-	const TMap<FName, UWidget*>& GetTagWidgetList() const;
-
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
 	TArray<FName> GetTagList() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UWidget* GetTagWidget(const FName& InGuideTag);
+
+	bool GetGuideWidgetTree(OUT TArray<FGuideTreeNode>& OutWidgetTree, const FName& InGuideTag);
+	bool GetGuideWidgetList(OUT TArray<UWidget*>& OutWidgetList, const FName& InGuideTag);
 
 private:
 	void SetLayer(UWidget* InLayer);
@@ -44,6 +59,8 @@ protected:
 	virtual const FText GetPaletteCategory() override;
 	virtual void ValidateCompiledDefaults(IWidgetCompilerLog& CompileLog) const override;
 
+	void ConstructWidgetTree(OUT TArray<FGuideTreeNode>& OutNodeTree, UWidget* InWidget) const;
+
 	UFUNCTION(BlueprintCosmetic, CallInEditor, meta = (Category = "Guide Mask Setting", DisplayName = "Show Preview"))
 	void ShowPreviewDebug();
 
@@ -53,6 +70,10 @@ protected:
 	UFUNCTION()
 	TArray<FName> GetTagOptions() const;
 
+	UFUNCTION()
+	TArray<FName> GetNestedWidgetOptions() const;
+
+
 	void CreatePreviewLayer(const FGeometry& InViewportGeometry);
 #endif
 
@@ -61,11 +82,12 @@ private:
 	UPROPERTY(EditInstanceOnly, meta = (Category = "Guide Mask Setting", GetOptions = "GetTagOptions", AllowPrivateAccess = "true"))
 	FName PreviewWidgetTag;
 
-	UPROPERTY(EditInstanceOnly, meta = (Category = "Guide Mask Setting", GetOptions = "GetTagOptions", AllowPrivateAccess = "true", ClampMin = "1"))
-	int PreviewTreeLevel = 1;
+	UPROPERTY(EditInstanceOnly, meta = (Category = "Guide Mask Setting", GetOptions = "GetNestedWidgetOptions", AllowPrivateAccess = "true"))
+	FName PreviewNestedWidget;
 
 	UPROPERTY(VisibleInstanceOnly, meta = (Category = "Guide Mask Setting", AllowPrivateAccess = "true", DisplayAfter = "TagWidgetList"))
-	TMap<int /*Node Level*/, UWidget*> TreeLevels {};
+	TArray<FGuideTreeNode> GuideWidgetTree {};
+
 #endif
 
 	UPROPERTY(EditInstanceOnly, meta = (Category = "Guide Mask Setting", AllowPrivateAccess = "true"))

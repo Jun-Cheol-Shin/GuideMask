@@ -9,6 +9,7 @@
 #include "Components/ListView.h"
 #include "Components/ComboBoxString.h"
 #include "Components/SpinBox.h"
+#include "Components/DynamicEntryBox.h"
 
 #include "Kismet/KismetInputLibrary.h"
 #include "Kismet/KismetStringLibrary.h"
@@ -17,14 +18,78 @@
 #include "GuideMaskUI/GuideMaskUIFunctionLibrary.h"
 
 
-int USampleHUD::GetWidgetTreeLevel() const
+TArray<FGuideNodePathParam> USampleHUD::GetNodeParam() const
 {
-	if (nullptr != LevelComboBox)
+	TArray<FGuideNodePathParam> RetVal;
+
+	if (!ensureAlways(TagComboBox && ScopeWidgetComboBox && NestedWidgetComboBox))
 	{
-		return FMath::Max(1, LevelComboBox->GetSelectedIndex() + 1);
+		return RetVal;
 	}
 
-	return 1;
+	FName SelectedTag = FName(TagComboBox->GetSelectedOption());
+
+	UGuideMaskRegister* Register = UGuideMaskUIFunctionLibrary::GetRegister(GetWorld(), SelectedTag);
+	if (nullptr == Register)
+	{
+		return RetVal;
+	}
+
+	TArray<FGuideTreeNode> NewTree;
+	Register->GetGuideWidgetTree(OUT NewTree, SelectedTag);
+
+	int ScopeIndex = ScopeWidgetComboBox->GetSelectedIndex();
+	int NestedIndex = NestedWidgetComboBox->GetSelectedIndex();
+
+	UWidget* TempScope = nullptr;
+
+	for (int i = ScopeIndex; i >= 0; --i)
+	{
+		if (!ensureAlways(NewTree.IsValidIndex(i)))
+		{
+			return RetVal;
+		}
+
+		FGuideTreeNode Node = NewTree[i];
+
+		FGuideNodePathParam NewParam;
+
+		if (nullptr != TempScope)
+		{
+			NewParam.NestedWidgetIndex = Node.NestedWidgets.IndexOfByPredicate([&TempScope](UWidget* InWidget)
+				{
+					return InWidget == TempScope;
+				});
+		}
+
+		else
+		{
+			NewParam.NestedWidgetIndex = NestedIndex;
+		}
+
+
+		if (UListView* ListView = Cast<UListView>(Node.Scope))
+		{
+			NewParam.OnGetDynamicEvent.BindDynamic(this, &USampleHUD::OnGetListItem);
+			RetVal.Emplace(NewParam);
+		}
+
+		else if (UDynamicEntryBox* EntryBox = Cast<UDynamicEntryBox>(Node.Scope))
+		{
+			NewParam.OnGetDynamicEvent.BindDynamic(this, &USampleHUD::OnGetDynamicEntry);
+			RetVal.Emplace(NewParam);
+		}
+
+		TempScope = Node.Scope;
+	}
+
+	if (false == RetVal.IsEmpty())
+	{
+		Algo::Reverse(RetVal);
+	}
+
+
+	return RetVal;
 }
 
 FName USampleHUD::GetSelectedTag() const
@@ -68,9 +133,14 @@ void USampleHUD::NativeConstruct()
 	}
 	*/
 
-	if (nullptr != LevelComboBox)
+	if (nullptr != ScopeWidgetComboBox)
 	{
-		LevelComboBox->OnSelectionChanged.AddDynamic(this, &USampleHUD::OnLevelSelectionChanged);
+		ScopeWidgetComboBox->OnSelectionChanged.AddDynamic(this, &USampleHUD::OnScopeWidgetSelectionChanged);
+	}
+
+	if (nullptr != NestedWidgetComboBox)
+	{
+		NestedWidgetComboBox->OnSelectionChanged.AddDynamic(this, &USampleHUD::OnNestedWidgetSelectionChanged);
 	}
 
 	if (nullptr != ActionKeyComboBox)
@@ -112,30 +182,82 @@ void USampleHUD::NativeDestruct()
 
 void USampleHUD::OnTagSelectionChanged(FString InSelectedItem, ESelectInfo::Type InType)
 {
-	if (nullptr != LevelComboBox)
+	if (nullptr != ScopeWidgetComboBox)
 	{
-		LevelComboBox->ClearOptions();
-		TMap<int, UWidget*> NewTree;
+		ScopeWidgetComboBox->ClearOptions();
 
-		UWidget* TaggedWidget = UGuideMaskUIFunctionLibrary::GetTagWidget(GetWorld(), FName(InSelectedItem));
-		if (nullptr != TaggedWidget)
+		UGuideMaskRegister* Register = UGuideMaskUIFunctionLibrary::GetRegister(GetWorld(), FName(InSelectedItem));
+		if (nullptr == Register)
 		{
-			NewTree = UGuideMaskUIFunctionLibrary::GetWidgetTree(GetWorld(), TaggedWidget);
+			return;
 		}
 
-		TArray<int> KeyList;
-		NewTree.GenerateKeyArray(KeyList);
+		TArray<FGuideTreeNode> NewTree;
+		Register->GetGuideWidgetTree(NewTree, FName(InSelectedItem));
 
-		TArray<UWidget*> WidgetNameList;
-		NewTree.GenerateValueArray(WidgetNameList);
-
-		for (int i = 0; i < KeyList.Num(); ++i)
+		for (int i = 0; i < NewTree.Num(); ++i)
 		{
-			LevelComboBox->AddOption(FString::Printf(TEXT("%d. %s"), KeyList[i], *WidgetNameList[i]->GetName()));
+			if (false == NewTree.IsValidIndex(i))
+			{
+				continue;
+			}
+
+			if (nullptr == NewTree[i].Scope)
+			{
+				continue;
+			}
+
+			ScopeWidgetComboBox->AddOption(NewTree[i].Scope->GetName());
 		}
 
-		LevelComboBox->SetSelectedIndex(0);
+		ScopeWidgetComboBox->SetSelectedIndex(0);
 	}
+}
+
+void USampleHUD::OnScopeWidgetSelectionChanged(FString InSelectedItem, ESelectInfo::Type InType)
+{
+	if (!ensureAlways(NestedWidgetComboBox && ScopeWidgetComboBox && TagComboBox))
+	{
+		return;
+	}
+
+
+	NestedWidgetComboBox->ClearOptions();
+
+	FName Tag = FName(TagComboBox->GetSelectedOption());
+	int ScopeIndex = ScopeWidgetComboBox->GetSelectedIndex();
+
+	UGuideMaskRegister* Register = UGuideMaskUIFunctionLibrary::GetRegister(GetWorld(), Tag);
+	if (nullptr == Register)
+	{
+		return;
+	}
+
+	TArray<FGuideTreeNode> NewTree;
+	Register->GetGuideWidgetTree(NewTree, FName(TagComboBox->GetSelectedOption()));
+
+	if (NewTree.IsValidIndex(ScopeIndex))
+	{
+		FGuideTreeNode SelectedNode = NewTree[ScopeIndex];
+
+		for (int i = 0; i < SelectedNode.NestedWidgets.Num(); ++i)
+		{
+			UWidget* ChildWidget = SelectedNode.NestedWidgets[i];
+			if (nullptr == ChildWidget)
+			{
+				continue;
+			}
+
+			NestedWidgetComboBox->AddOption(ChildWidget->GetName());
+		}
+
+		NestedWidgetComboBox->SetSelectedIndex(0);
+	}
+}
+
+void USampleHUD::OnNestedWidgetSelectionChanged(FString InSelectedItem, ESelectInfo::Type InType)
+{
+
 }
 
 void USampleHUD::OnActionTypeSelectionChanged(FString InSelectedItem, ESelectInfo::Type InType)
@@ -235,9 +357,14 @@ void USampleHUD::OnChangedHoldTime(float InValue)
 	HoldTime = InValue;
 }
 
-void USampleHUD::OnLevelSelectionChanged(FString InSelectedItem, ESelectInfo::Type InType)
+bool USampleHUD::OnGetListItem(UObject* InItem)
 {
-	//
+	if (USampleListItem* ListItem = Cast<USampleListItem>(InItem))
+	{
+		return ListItem->ItemId == 10;
+	}
+
+	return false;
 }
 
 void USampleHUD::Initialize_ActionTypeComboBox()

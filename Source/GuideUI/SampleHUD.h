@@ -14,6 +14,8 @@ class UButton;
 class UTextBlock;
 class USpinBox;
 
+struct FGuideNodePathParam;
+
 UCLASS()
 class GUIDEUI_API USampleHUD : public UUserWidget
 {
@@ -33,7 +35,8 @@ public:
 	float GetHoldTime() const { return HoldTime; }
 
 	UFUNCTION(BlueprintCallable)
-	int GetWidgetTreeLevel() const;
+	TArray<FGuideNodePathParam> GetNodeParam() const;
+
 
 	UFUNCTION(BlueprintCallable)
 	FName GetSelectedTag() const;
@@ -51,7 +54,11 @@ private:
 	void OnTagSelectionChanged(FString InSelectedItem, ESelectInfo::Type InType);
 
 	UFUNCTION()
-	void OnLevelSelectionChanged(FString InSelectedItem, ESelectInfo::Type InType);
+	void OnScopeWidgetSelectionChanged(FString InSelectedItem, ESelectInfo::Type InType);
+
+
+	UFUNCTION()
+	void OnNestedWidgetSelectionChanged(FString InSelectedItem, ESelectInfo::Type InType);
 
 	UFUNCTION()
 	void OnActionTypeSelectionChanged(FString InSelectedItem, ESelectInfo::Type InType);
@@ -64,6 +71,12 @@ private:
 
 	UFUNCTION()
 	void OnChangedHoldTime(float InValue);
+
+	UFUNCTION()
+	bool OnGetListItem(UObject* InItem);
+
+	UFUNCTION()
+	bool OnGetDynamicEntry(UObject* InEntry) { return true; } 
 
 
 private:
@@ -79,7 +92,10 @@ private:
 	UComboBoxString* TagComboBox;
 
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget, AllowPrivateAccess = "true"))
-	UComboBoxString* LevelComboBox;
+	UComboBoxString* ScopeWidgetComboBox;
+
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget, AllowPrivateAccess = "true"))
+	UComboBoxString* NestedWidgetComboBox;
 
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget, AllowPrivateAccess = "true"))
 	UComboBoxString* ActionTypeComboBox;

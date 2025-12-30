@@ -61,6 +61,117 @@ void UGuideMaskUIFunctionLibrary::ShowGuideListEntry(const UObject* WorldContext
 
 }
 
+
+void UGuideMaskUIFunctionLibrary::ShowGuideNestedWidget(const UObject* WorldContextObject, UWidget* InWidget, const TArray<FGuideNodePathParam>& InParamList, const FGuideBoxActionParameters& InActionParam, int InLayerZOrder, float InAsyncTimeout)
+{
+	if (nullptr == WorldContextObject)
+	{
+		return;
+	}
+
+	if (true == InParamList.IsEmpty())
+	{
+		ShowGuideWidget(WorldContextObject, InWidget, InActionParam, InLayerZOrder);
+		return;
+	}
+
+	TArray<FGuideNodePathParam> NewParamList;
+	for (int i = 1; i < InParamList.Num(); ++i)
+	{
+		NewParamList.Emplace(InParamList[i]);
+	}
+
+	FGuideNodePathParam Path = InParamList[0];
+	if (UListView* ListView = Cast<UListView>(InWidget))
+	{
+		UObject* const* ListItem = ListView->GetListItems().FindByPredicate([Event = Path.OnGetDynamicEvent](UObject* InItem) -> bool
+			{
+				return true == Event.IsBound() ? Event.Execute(InItem) : false;
+			});
+
+		if (ListItem && *ListItem)
+		{
+			if (UGuideListEntryAsyncAction* AsyncAction =
+				UGuideListEntryAsyncAction::Create(WorldContextObject->GetWorld(),
+					ListView,
+					*ListItem,
+					InAsyncTimeout))
+			{
+				AsyncAction->OnReadyNative.AddWeakLambda(WorldContextObject,
+					[NewParamList, ChildIndex = Path.NestedWidgetIndex, InActionParam, InLayerZOrder, InAsyncTimeout](const UObject* InWorldContextObject, UUserWidget* InEntryWidget)
+					{
+						if (nullptr == InEntryWidget)
+						{
+							return;
+						}
+
+						TArray<UWidget*> Childs;
+						if (true == InEntryWidget->GetClass()->ImplementsInterface(UEntryGuideIdentifiable::StaticClass()))
+						{
+							IEntryGuideIdentifiable::Execute_GetDesiredNestedWidgets(InEntryWidget, OUT Childs);
+						}
+
+						else if (IEntryGuideIdentifiable* Identify = Cast<IEntryGuideIdentifiable>(InEntryWidget))
+						{
+							Identify->GetDesiredNestedWidgets_Implementation(OUT Childs);
+						}
+
+						if (false == Childs.IsValidIndex(ChildIndex))
+						{
+							ShowGuideWidget(InWorldContextObject, InEntryWidget, InActionParam, InLayerZOrder);
+						}
+
+						else
+						{
+							ShowGuideNestedWidget(InWorldContextObject, Childs[ChildIndex], NewParamList, InActionParam, InLayerZOrder, InAsyncTimeout);
+						}					
+					});
+
+				AsyncAction->Activate();
+			}
+		}
+	}
+
+	else if (UDynamicEntryBox* EntryBox = Cast<UDynamicEntryBox>(InWidget))
+	{
+		UUserWidget* const* Entry = EntryBox->GetAllEntries().FindByPredicate([Event = Path.OnGetDynamicEvent](UUserWidget* InEntry)
+			{
+				return true == Event.IsBound() ? Event.Execute(InEntry) : false;
+			});
+
+		UUserWidget* EntryPtr = Entry && *Entry ? *Entry : nullptr;
+		
+		if (nullptr != EntryPtr)
+		{
+			TArray<UWidget*> Childs;
+			if (true == EntryPtr->GetClass()->ImplementsInterface(UEntryGuideIdentifiable::StaticClass()))
+			{
+				IEntryGuideIdentifiable::Execute_GetDesiredNestedWidgets(EntryPtr, OUT Childs);
+			}
+
+			else if (IEntryGuideIdentifiable* Identify = Cast<IEntryGuideIdentifiable>(EntryPtr))
+			{
+				Identify->GetDesiredNestedWidgets_Implementation(OUT Childs);
+			}
+
+			if (false == Childs.IsValidIndex(Path.NestedWidgetIndex))
+			{
+				ShowGuideWidget(WorldContextObject, EntryPtr, InActionParam, InLayerZOrder);
+			}
+
+			else
+			{
+				ShowGuideNestedWidget(WorldContextObject, Childs[Path.NestedWidgetIndex], NewParamList, InActionParam, InLayerZOrder, InAsyncTimeout);
+			}
+		}
+	}
+
+	else
+	{
+		ShowGuideWidget(WorldContextObject, InWidget, InActionParam, InLayerZOrder);
+	}
+}
+
 void UGuideMaskUIFunctionLibrary::GetAllGuideRegisters(const UObject* WorldContextObject, TArray<UGuideMaskRegister*>& FoundWidgets)
 {
 	FoundWidgets.Empty();
@@ -90,100 +201,25 @@ void UGuideMaskUIFunctionLibrary::GetAllGuideRegisters(const UObject* WorldConte
 	}
 }
 
-UWidget* UGuideMaskUIFunctionLibrary::GetTagWidget(const UObject* WorldContextObject, const FName& InTag, int InLevel)
+UWidget* UGuideMaskUIFunctionLibrary::GetTagWidget(const UObject* WorldContextObject, const FName& InTag)
 {
-	TArray<UGuideMaskRegister*> Widgets;
-	GetAllGuideRegisters(WorldContextObject, OUT Widgets);
-
-	for (UGuideMaskRegister* Register : Widgets)
+	if (UGuideMaskRegister* Register = GetRegister(WorldContextObject, InTag))
 	{
-		if (false == Register->IsContains(InTag))
-		{
-			continue;
-		}
-
-		return Register->GetTagWidget(InTag, InLevel);
+		return Register->GetTagWidget(InTag);
 	}
-
 
 	return nullptr;
 }
 
-TMap<int, UWidget*> UGuideMaskUIFunctionLibrary::GetWidgetTree(const UObject* WorldContextObject, UWidget* InWidget)
+UGuideMaskRegister* UGuideMaskUIFunctionLibrary::GetRegister(const UObject* WorldContextObject, const FName& InTag)
 {
-	TMap<int, UWidget*> Retval;
+	TArray<UGuideMaskRegister*> Widgets;
+	GetAllGuideRegisters(WorldContextObject, OUT Widgets);
 
-	int Level = 1;
-	ConstructTree(OUT Retval, WorldContextObject, InWidget, Level);
-
-	return Retval;
-}
-
-void UGuideMaskUIFunctionLibrary::ConstructTree(OUT TMap<int, UWidget*>& OutWidgetTree, const UObject* WorldContextObject, UWidget* InWidget, int& OutKey)
-{
-	if (nullptr == InWidget)
-	{
-		return;
-	}
-
-	OutWidgetTree.Emplace(OutKey++, InWidget);
-
-	if (UListView* ListView = Cast<UListView>(InWidget))
-	{
-		if (true == ListView->GetDisplayedEntryWidgets().IsEmpty())
+	UGuideMaskRegister** FoundRegister = Widgets.FindByPredicate([InTag](UGuideMaskRegister* InRegister)
 		{
-			ForeachEntryClass(OutWidgetTree, WorldContextObject, ListView->GetEntryWidgetClass(), OutKey);
-		}
+			return InRegister && InRegister->IsContains(InTag);
+		});
 
-		else
-		{
-			ForeachEntry(OutWidgetTree, WorldContextObject , *ListView->GetDisplayedEntryWidgets().begin(), OutKey);
-		}
-
-	}
-
-	else if (UDynamicEntryBox* EntryBox = Cast<UDynamicEntryBox>(InWidget))
-	{
-		if (true == EntryBox->GetAllEntries().IsEmpty())
-		{
-			ForeachEntryClass(OutWidgetTree, WorldContextObject, EntryBox->GetEntryWidgetClass(), OutKey);
-		}
-
-		else
-		{
-			ForeachEntry(OutWidgetTree, WorldContextObject, *EntryBox->GetAllEntries().begin(), OutKey);
-		}
-	}
-}
-
-void UGuideMaskUIFunctionLibrary::ForeachEntryClass(OUT TMap<int, UWidget*>& OutTree, const UObject* WorldContextObject, TSubclassOf<UUserWidget> InEntryClass, int& OutKey)
-{
-	if (UUserWidget* EntryWidget = CreateWidget<UUserWidget>(WorldContextObject->GetWorld(), InEntryClass))
-	{
-		ForeachEntry(OutTree, WorldContextObject, EntryWidget, OutKey);
-	}
-}
-
-void UGuideMaskUIFunctionLibrary::ForeachEntry(OUT TMap<int, UWidget*>& OutTree, const UObject* WorldContextObject, UUserWidget* InEntry, int& OutKey)
-{
-	if (InEntry)
-	{
-		TArray<UWidget*> Childs;
-
-		if (true == InEntry->GetClass()->ImplementsInterface(UEntryGuideIdentifiable::StaticClass()))
-		{
-			IEntryGuideIdentifiable::Execute_GetDesiredNestedWidgets(InEntry, OUT Childs);
-		}
-
-		else if (IEntryGuideIdentifiable* Identify = Cast<IEntryGuideIdentifiable>(InEntry))
-		{
-			Identify->GetDesiredNestedWidgets_Implementation(OUT Childs);
-		}
-
-
-		for (int i = 0; i < Childs.Num(); ++i)
-		{
-			ConstructTree(OutTree, WorldContextObject, Childs[i], OutKey);
-		}
-	}
+	return FoundRegister && *FoundRegister ? *FoundRegister : nullptr;
 }
