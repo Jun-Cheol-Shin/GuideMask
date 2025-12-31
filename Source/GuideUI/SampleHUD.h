@@ -14,7 +14,7 @@ class UButton;
 class UTextBlock;
 class USpinBox;
 
-struct FGuideNodePathParam;
+struct FGuideDynamicWidgetPath;
 
 UCLASS()
 class GUIDEUI_API USampleHUD : public UUserWidget
@@ -35,7 +35,7 @@ public:
 	float GetHoldTime() const { return HoldTime; }
 
 	UFUNCTION(BlueprintCallable)
-	TArray<FGuideNodePathParam> GetNodeParam() const;
+	TArray<FGuideDynamicWidgetPath> GetDynamicPath() const;
 
 
 	UFUNCTION(BlueprintCallable)

@@ -15,7 +15,7 @@ DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FOnGetDynamicEntryDynamicEvent, U
 
 
 USTRUCT(BlueprintType)
-struct FGuideNodePathParam
+struct FGuideDynamicWidgetPath
 {
 	GENERATED_BODY()
 
@@ -24,7 +24,7 @@ public:
 	FOnGetDynamicEntryDynamicEvent OnGetDynamicEvent;
 
 	UPROPERTY(EditAnywhere)
-	int NestedWidgetIndex = -1;
+	int NextSearchChildIndex = -1;
 };
 
 
@@ -45,7 +45,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Guide Mask UI Functions", meta = (WorldContext = "WorldContextObject"))
 	static void ShowGuideListEntry(const UObject* WorldContextObject, UListView* InTagListView, UObject* InListItem, const FGuideBoxActionParameters& InActionParam = FGuideBoxActionParameters(), int InLayerZOrder = 0, float InAsyncTimeout = 1.f);
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Guide Mask UI Functions", meta = (WorldContext = "WorldContextObject"))
-	static void ShowGuideNestedWidget(const UObject* WorldContextObject, UWidget* InWidget, const TArray<FGuideNodePathParam>& InParamList, const FGuideBoxActionParameters& InActionParam = FGuideBoxActionParameters(), int InLayerZOrder = 0, float InAsyncTimeout = 1.f);
+	static void ShowGuideDynamicWidget(const UObject* WorldContextObject, UWidget* InWidget, const TArray<FGuideDynamicWidgetPath>& InPath, const FGuideBoxActionParameters& InActionParam = FGuideBoxActionParameters(), int InLayerZOrder = 0, float InAsyncTimeout = 1.f);
 
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Guide Mask UI Functions", meta = (WorldContext = "WorldContextObject", DeterminesOutputType = "WidgetClass", DynamicOutputParam = "FoundWidgets"))
 	static void GetAllGuideRegisters(const UObject* WorldContextObject, TArray<UGuideMaskRegister*>& FoundWidgets);

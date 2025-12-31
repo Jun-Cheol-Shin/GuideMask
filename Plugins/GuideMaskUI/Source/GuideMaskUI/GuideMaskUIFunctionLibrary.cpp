@@ -62,29 +62,29 @@ void UGuideMaskUIFunctionLibrary::ShowGuideListEntry(const UObject* WorldContext
 }
 
 
-void UGuideMaskUIFunctionLibrary::ShowGuideNestedWidget(const UObject* WorldContextObject, UWidget* InWidget, const TArray<FGuideNodePathParam>& InParamList, const FGuideBoxActionParameters& InActionParam, int InLayerZOrder, float InAsyncTimeout)
+void UGuideMaskUIFunctionLibrary::ShowGuideDynamicWidget(const UObject* WorldContextObject, UWidget* InWidget, const TArray<FGuideDynamicWidgetPath>& InPath, const FGuideBoxActionParameters& InActionParam, int InLayerZOrder, float InAsyncTimeout)
 {
 	if (nullptr == WorldContextObject)
 	{
 		return;
 	}
 
-	if (true == InParamList.IsEmpty())
+	if (true == InPath.IsEmpty())
 	{
 		ShowGuideWidget(WorldContextObject, InWidget, InActionParam, InLayerZOrder);
 		return;
 	}
 
-	TArray<FGuideNodePathParam> NewParamList;
-	for (int i = 1; i < InParamList.Num(); ++i)
+	TArray<FGuideDynamicWidgetPath> NewPath;
+	for (int i = 1; i < InPath.Num(); ++i)
 	{
-		NewParamList.Emplace(InParamList[i]);
+		NewPath.Emplace(InPath[i]);
 	}
 
-	FGuideNodePathParam Path = InParamList[0];
+	FGuideDynamicWidgetPath CurrentPath = InPath[0];
 	if (UListView* ListView = Cast<UListView>(InWidget))
 	{
-		UObject* const* ListItem = ListView->GetListItems().FindByPredicate([Event = Path.OnGetDynamicEvent](UObject* InItem) -> bool
+		UObject* const* ListItem = ListView->GetListItems().FindByPredicate([Event = CurrentPath.OnGetDynamicEvent](UObject* InItem) -> bool
 			{
 				return true == Event.IsBound() ? Event.Execute(InItem) : false;
 			});
@@ -98,7 +98,7 @@ void UGuideMaskUIFunctionLibrary::ShowGuideNestedWidget(const UObject* WorldCont
 					InAsyncTimeout))
 			{
 				AsyncAction->OnReadyNative.AddWeakLambda(WorldContextObject,
-					[NewParamList, ChildIndex = Path.NestedWidgetIndex, InActionParam, InLayerZOrder, InAsyncTimeout](const UObject* InWorldContextObject, UUserWidget* InEntryWidget)
+					[NewPath, ChildIndex = CurrentPath.NextSearchChildIndex, InActionParam, InLayerZOrder, InAsyncTimeout](const UObject* InWorldContextObject, UUserWidget* InEntryWidget)
 					{
 						if (nullptr == InEntryWidget)
 						{
@@ -123,8 +123,14 @@ void UGuideMaskUIFunctionLibrary::ShowGuideNestedWidget(const UObject* WorldCont
 
 						else
 						{
-							ShowGuideNestedWidget(InWorldContextObject, Childs[ChildIndex], NewParamList, InActionParam, InLayerZOrder, InAsyncTimeout);
+							ShowGuideDynamicWidget(InWorldContextObject, Childs[ChildIndex], NewPath, InActionParam, InLayerZOrder, InAsyncTimeout);
 						}					
+					});
+
+				AsyncAction->OnFailedNative.AddWeakLambda(WorldContextObject,
+					[WorldContextObject, ListView, InActionParam, InLayerZOrder]()
+					{
+						ShowGuideWidget(WorldContextObject, ListView, InActionParam, InLayerZOrder);
 					});
 
 				AsyncAction->Activate();
@@ -134,7 +140,7 @@ void UGuideMaskUIFunctionLibrary::ShowGuideNestedWidget(const UObject* WorldCont
 
 	else if (UDynamicEntryBox* EntryBox = Cast<UDynamicEntryBox>(InWidget))
 	{
-		UUserWidget* const* Entry = EntryBox->GetAllEntries().FindByPredicate([Event = Path.OnGetDynamicEvent](UUserWidget* InEntry)
+		UUserWidget* const* Entry = EntryBox->GetAllEntries().FindByPredicate([Event = CurrentPath.OnGetDynamicEvent](UUserWidget* InEntry)
 			{
 				return true == Event.IsBound() ? Event.Execute(InEntry) : false;
 			});
@@ -154,15 +160,20 @@ void UGuideMaskUIFunctionLibrary::ShowGuideNestedWidget(const UObject* WorldCont
 				Identify->GetDesiredNestedWidgets_Implementation(OUT Childs);
 			}
 
-			if (false == Childs.IsValidIndex(Path.NestedWidgetIndex))
+			if (false == Childs.IsValidIndex(CurrentPath.NextSearchChildIndex))
 			{
 				ShowGuideWidget(WorldContextObject, EntryPtr, InActionParam, InLayerZOrder);
 			}
 
 			else
 			{
-				ShowGuideNestedWidget(WorldContextObject, Childs[Path.NestedWidgetIndex], NewParamList, InActionParam, InLayerZOrder, InAsyncTimeout);
+				ShowGuideDynamicWidget(WorldContextObject, Childs[CurrentPath.NextSearchChildIndex], NewPath, InActionParam, InLayerZOrder, InAsyncTimeout);
 			}
+		}
+
+		else
+		{
+			ShowGuideWidget(WorldContextObject, EntryBox, InActionParam, InLayerZOrder);
 		}
 	}
 

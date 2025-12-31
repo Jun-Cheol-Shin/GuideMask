@@ -18,9 +18,9 @@
 #include "GuideMaskUI/GuideMaskUIFunctionLibrary.h"
 
 
-TArray<FGuideNodePathParam> USampleHUD::GetNodeParam() const
+TArray<FGuideDynamicWidgetPath> USampleHUD::GetDynamicPath() const
 {
-	TArray<FGuideNodePathParam> RetVal;
+	TArray<FGuideDynamicWidgetPath> RetVal;
 
 	if (!ensureAlways(TagComboBox && ScopeWidgetComboBox && NestedWidgetComboBox))
 	{
@@ -51,12 +51,11 @@ TArray<FGuideNodePathParam> USampleHUD::GetNodeParam() const
 		}
 
 		FGuideTreeNode Node = NewTree[i];
-
-		FGuideNodePathParam NewParam;
+		FGuideDynamicWidgetPath NewPath;
 
 		if (nullptr != TempScope)
 		{
-			NewParam.NestedWidgetIndex = Node.NestedWidgets.IndexOfByPredicate([&TempScope](UWidget* InWidget)
+			NewPath.NextSearchChildIndex = Node.NestedWidgets.IndexOfByPredicate([&TempScope](UWidget* InWidget)
 				{
 					return InWidget == TempScope;
 				});
@@ -64,20 +63,20 @@ TArray<FGuideNodePathParam> USampleHUD::GetNodeParam() const
 
 		else
 		{
-			NewParam.NestedWidgetIndex = NestedIndex;
+			NewPath.NextSearchChildIndex = NestedIndex;
 		}
 
 
 		if (UListView* ListView = Cast<UListView>(Node.Scope))
 		{
-			NewParam.OnGetDynamicEvent.BindDynamic(this, &USampleHUD::OnGetListItem);
-			RetVal.Emplace(NewParam);
+			NewPath.OnGetDynamicEvent.BindDynamic(this, &USampleHUD::OnGetListItem);
+			RetVal.Emplace(NewPath);
 		}
 
 		else if (UDynamicEntryBox* EntryBox = Cast<UDynamicEntryBox>(Node.Scope))
 		{
-			NewParam.OnGetDynamicEvent.BindDynamic(this, &USampleHUD::OnGetDynamicEntry);
-			RetVal.Emplace(NewParam);
+			NewPath.OnGetDynamicEvent.BindDynamic(this, &USampleHUD::OnGetDynamicEntry);
+			RetVal.Emplace(NewPath);
 		}
 
 		TempScope = Node.Scope;
