@@ -52,7 +52,7 @@ private:
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	virtual void ReleaseSlateResources(bool bReleaseChildren) override;	
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;	 
 	virtual void SynchronizeProperties() override;
 
 #if WITH_EDITOR

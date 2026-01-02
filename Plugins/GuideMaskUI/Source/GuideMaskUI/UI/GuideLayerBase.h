@@ -52,7 +52,7 @@ protected:
 	virtual FReply OnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InEvent);
 	virtual FReply OnTouchEnded(const FGeometry& InGeometry, const FPointerEvent& InEvent);
 
-	virtual void SetGuide(const FGeometry& InViewportGeometry, UWidget* InWidget);
+	virtual void SetGuideInternal(const FGeometry& InViewportGeometry, UWidget* InWidget);
 	virtual void SetGuideLayer(const FVector2D& InScreenSize, const FVector2D& InTargetLoc, const FVector2D& InTargetSize);
 	virtual void SetMaterialTransform(const FVector2D& InViewportSize, const FVector2D& InPosiiton, const FVector2D& InWidgetSize);
 

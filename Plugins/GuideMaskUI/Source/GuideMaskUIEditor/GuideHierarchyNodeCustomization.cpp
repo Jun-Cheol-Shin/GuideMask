@@ -35,7 +35,6 @@ void FGuideHierarchyNodeCustomization::CustomizeHeader(TSharedRef<IPropertyHandl
             .WholeRowContent()
             [
                 SNew(SHorizontalBox)
-                    // 1) 들여 쓰기
                     + SHorizontalBox::Slot().AutoWidth()
                     [
                         SNew(SSpacer)
@@ -45,7 +44,6 @@ void FGuideHierarchyNodeCustomization::CustomizeHeader(TSharedRef<IPropertyHandl
                                 })
                     ]
 
-                // 2) 간단한 트리 마커 (원하면 타입별 아이콘으로 교체)
                 + SHorizontalBox::Slot().AutoWidth()
                     [
                         SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT(" Level %d"), Depth)))
@@ -68,10 +66,15 @@ void FGuideHierarchyNodeCustomization::CustomizeHeader(TSharedRef<IPropertyHandl
     }
     else
     {
-        // 배열이 아닌 일반 노출일 때는 기본처럼 이름 보여주기
         HeaderRow
-            .NameContent()[PropertyHandle->CreatePropertyNameWidget()]
-            .ValueContent()[PropertyHandle->CreatePropertyValueWidget() /* 구조체는 보통 비거나 커스텀 */];
+            .NameContent()
+            [
+                PropertyHandle->CreatePropertyNameWidget()
+            ]
+            .ValueContent()
+            [
+                PropertyHandle->CreatePropertyValueWidget()
+            ];
     }
 
 }
@@ -97,13 +100,11 @@ void FGuideHierarchyNodeCustomization::CustomizeChildren(TSharedRef<IPropertyHan
                 {
                     IDetailPropertyRow& Row = Children.AddProperty(ElementHandle);
 
-
                     Row.ShowPropertyButtons(false);
                     Row.IsEnabled(false);
                     Row.ShouldAutoExpand(true);
 
-                    // 필요하면 Index[0] 같은 라벨도 제거하려면 CustomWidget으로 WholeRowContent 사용
-                    // Row.CustomWidget().WholeRowContent()[ ... ElementHandle->CreatePropertyValueWidget() ... ];
+                    // Row.CustomWidget().WholeRowContent()[  ];
                 })
         );
 

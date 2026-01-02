@@ -60,7 +60,6 @@ void FGuideMaskRegDetailCustomization::RegistHierarchyProperty(IDetailLayoutBuil
     TSharedRef<IPropertyHandle> PropertyHandle = DetailBuilder.GetProperty(InProperty, ClassOutermost);
     DetailBuilder.HideProperty(PropertyHandle);
 
-    // 배열 길이 확인
     uint32 Num = 0;
     if (auto Array = PropertyHandle->AsArray())
     {
@@ -70,7 +69,6 @@ void FGuideMaskRegDetailCustomization::RegistHierarchyProperty(IDetailLayoutBuil
 
     if (Num == 0)
     {
-        // 비어있을 때 안내 텍스트
         InCategoryBuilder.AddCustomRow(FText::FromString("HierarchyEmpty"))
             .WholeRowContent()
             [
@@ -83,7 +81,6 @@ void FGuideMaskRegDetailCustomization::RegistHierarchyProperty(IDetailLayoutBuil
     else
     {
 
-        // 요소만 출력 (배열 헤더 생성 X)
         TSharedRef<FDetailArrayBuilder> ArrayBuilder =
             MakeShared<FDetailArrayBuilder>(PropertyHandle, /*bGenerateHeader*/ false);
 
@@ -92,12 +89,8 @@ void FGuideMaskRegDetailCustomization::RegistHierarchyProperty(IDetailLayoutBuil
                 [](TSharedRef<IPropertyHandle> ElementHandle, int32 Index, IDetailChildrenBuilder& Children)
                 {
                     IDetailPropertyRow& Row = Children.AddProperty(ElementHandle);
-
-                    // 요소 옆의 기본 버튼들(삭제/복제 등) 숨기기
                     Row.ShowPropertyButtons(false);
-
-                    // 필요하면 완전 읽기 전용처럼
-                    Row.IsEnabled(false); // 또는 ValueContent만 비활성화 커스텀
+                    Row.IsEnabled(false);
                 })
         );
 

@@ -53,7 +53,7 @@ void UGuideLayerBase::SetGuide(UWidget* InWidget, const FGuideBoxActionParameter
 
 	GuideWidget = InWidget;
 	FGeometry ViewportGeo = UWidgetLayoutLibrary::GetViewportWidgetGeometry(GetWorld());
-	SetGuide(ViewportGeo, InWidget);
+	SetGuideInternal(ViewportGeo, InWidget);
 
 	if (nullptr != BoxBaseWidget && InParam.ActionType != EGuideActionType::None_Action)
 	{
@@ -76,7 +76,7 @@ void UGuideLayerBase::SetGuide(UWidget* InWidget, const FGuideBoxActionParameter
 	OnStartAction(InWidget, InParam);
 }
 
-void UGuideLayerBase::SetGuide(const FGeometry& InViewportGeometry, UWidget* InWidget)
+void UGuideLayerBase::SetGuideInternal(const FGeometry& InViewportGeometry, UWidget* InWidget)
 {
 	if (nullptr == LayerPanel || nullptr == InWidget) return;
 
