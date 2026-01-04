@@ -1,2 +1,2 @@
-# GuideMaskUI
+# GuideMask
 Guide Mask Plugin
