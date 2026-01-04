@@ -13,6 +13,33 @@
 
 #include "../GuideMaskSettings.h"
 
+#if WITH_EDITOR
+void UGuideLayerBase::SetPreviewGuide(const FGeometry& InViewportGeometry, UWidget* InWidget)
+{
+	SetGuideInternal(InViewportGeometry, InWidget);
+
+	// Get target location
+	FVector2D TargetLocalPosition = InViewportGeometry.AbsoluteToLocal(InWidget->GetTickSpaceGeometry().AbsolutePosition);
+	FVector2D TargetLocation = InViewportGeometry.GetLocalPositionAtCoordinates(FVector2D(0, 0)) + TargetLocalPosition;
+
+	// Get target size
+	FVector2D TargetLocalBottomRight = InViewportGeometry.AbsoluteToLocal(InWidget->GetTickSpaceGeometry().LocalToAbsolute(InWidget->GetTickSpaceGeometry().GetLocalSize()));
+	FVector2D TargetLocalTopLeft = InViewportGeometry.AbsoluteToLocal(InWidget->GetTickSpaceGeometry().GetAbsolutePosition());
+	FVector2D TargetLocalSize = TargetLocalBottomRight - TargetLocalTopLeft;
+
+	const FVector2D GuideWidgetPosition = TargetLocation - FVector2D(GuideBoxOffset.Left, GuideBoxOffset.Top);
+	const FVector2D GuideWidgetSize = TargetLocalSize + FVector2D(GuideBoxOffset.Left + GuideBoxOffset.Right, GuideBoxOffset.Top + GuideBoxOffset.Bottom);
+
+	if (IsDesignTime() && OnPreviewGuideLayerFunc)
+	{
+		OnPreviewGuideLayerFunc(GuideWidgetPosition, GuideWidgetSize);
+	}
+
+	BP_OnPreviewGuide(GuideWidgetPosition, GuideWidgetSize);
+}
+
+#endif
+
 
 FReply UGuideLayerBase::OnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
@@ -73,7 +100,7 @@ void UGuideLayerBase::SetGuide(UWidget* InWidget, const FGuideBoxActionParameter
 		}
 	}
 
-	OnStartAction(InWidget, InParam);
+	OnStartGuide(InWidget, InParam);
 }
 
 void UGuideLayerBase::SetGuideInternal(const FGeometry& InViewportGeometry, UWidget* InWidget)
@@ -95,12 +122,35 @@ void UGuideLayerBase::SetGuideInternal(const FGeometry& InViewportGeometry, UWid
 	FVector2D TargetLocalTopLeft = InViewportGeometry.AbsoluteToLocal(InWidget->GetTickSpaceGeometry().GetAbsolutePosition());
 	FVector2D TargetLocalSize = TargetLocalBottomRight - TargetLocalTopLeft;
 
-	const FVector2D NewPos = TargetLocation - FVector2D(GuideBoxOffset.Left, GuideBoxOffset.Top);
-	const FVector2D NewSize = TargetLocalSize + FVector2D(GuideBoxOffset.Left + GuideBoxOffset.Right, GuideBoxOffset.Top + GuideBoxOffset.Bottom);
+	const FVector2D GuideWidgetPosition = TargetLocation - FVector2D(GuideBoxOffset.Left, GuideBoxOffset.Top);
+	const FVector2D GuideWidgetSize = TargetLocalSize + FVector2D(GuideBoxOffset.Left + GuideBoxOffset.Right, GuideBoxOffset.Top + GuideBoxOffset.Bottom);
 
-	SetGuideLayer(ScreenSize, 
-		NewPos, 
-		NewSize);
+	if (nullptr != GuideBoxPanel)
+	{
+		if (UCanvasPanelSlot* PanelSlot = Cast<UCanvasPanelSlot>(GuideBoxPanel->Slot))
+		{
+			PanelSlot->SetAnchors(FAnchors(0, 0, 0, 0));
+			PanelSlot->SetSize(GuideWidgetPosition);
+			PanelSlot->SetPosition(GuideWidgetSize);
+		}
+	}
+
+	FVector2D WidgetLeftTop = FVector2D(GuideWidgetPosition.X + GuideWidgetSize.X * 0.5f, GuideWidgetPosition.Y + GuideWidgetSize.Y * 0.5f);
+	FVector2D WidgetCenter_Pixel = WidgetLeftTop;
+	FVector2D WidgetSize_Pixel = GuideWidgetSize * 0.5f;
+
+	// UV 변환
+	FVector2D CenterUV = WidgetCenter_Pixel / ScreenSize;
+	FVector2D SizeUV = WidgetSize_Pixel / ScreenSize;
+
+	// 머티리얼 파라미터로 넘기기
+	if (ensure(MaterialInstance))
+	{
+		MaterialInstance->SetVectorParameterValue("Center", FLinearColor(CenterUV.X, CenterUV.Y, 0, 0));
+		MaterialInstance->SetVectorParameterValue("Size", FLinearColor(SizeUV.X, SizeUV.Y, 0, 0));
+	}
+
+
 }
 
 void UGuideLayerBase::SetEnableAnim(bool bIsEnable)
@@ -142,47 +192,6 @@ void UGuideLayerBase::SetBoxOffset(const FMargin& InMargin)
 	if (true == GuideWidget.IsValid())
 	{
 		SetGuide(GuideWidget.Get());
-	}
-}
-
-void UGuideLayerBase::SetGuideLayer(const FVector2D& InScreenSize, const FVector2D& InTargetLoc, const FVector2D& InTargetSize)
-{
-	if (nullptr != GuideBoxPanel)
-	{
-		if (UCanvasPanelSlot* PanelSlot = Cast<UCanvasPanelSlot>(GuideBoxPanel->Slot))
-		{
-			PanelSlot->SetAnchors(FAnchors(0, 0, 0, 0));
-			PanelSlot->SetSize(InTargetSize);
-			PanelSlot->SetPosition(InTargetLoc);
-		}
-	}
-
-	SetMaterialTransform(InScreenSize, InTargetLoc, InTargetSize);
-}
-
-void UGuideLayerBase::SetMaterialTransform(const FVector2D& InViewportSize, const FVector2D& InPosiiton, const FVector2D& InWidgetSize)
-{
-	// 실제 픽셀 좌표로 변환
-	FVector2D WidgetLeftTop = FVector2D(InPosiiton.X + InWidgetSize.X * 0.5f, InPosiiton.Y + InWidgetSize.Y * 0.5f);
-	FVector2D WidgetSize = InWidgetSize;
-
-	/*(false == InOffset.IsZero())
-	{
-		WidgetSize += InOffset;
-	}*/
-
-	FVector2D WidgetCenter_Pixel = WidgetLeftTop;
-	FVector2D WidgetSize_Pixel = WidgetSize * 0.5f;
-
-	// UV 변환
-	FVector2D CenterUV = WidgetCenter_Pixel / InViewportSize;
-	FVector2D SizeUV = WidgetSize_Pixel / InViewportSize;
-
-	// 머티리얼 파라미터로 넘기기
-	if (ensure(MaterialInstance))
-	{
-		MaterialInstance->SetVectorParameterValue("Center", FLinearColor(CenterUV.X, CenterUV.Y, 0, 0));
-		MaterialInstance->SetVectorParameterValue("Size", FLinearColor(SizeUV.X, SizeUV.Y, 0, 0));
 	}
 }
 
@@ -230,7 +239,7 @@ void UGuideLayerBase::NativeConstruct()
 
 
 			BoxBaseWidget->SetVisibility(ESlateVisibility::Visible);
-			BoxBaseWidget->OnPostAction.BindUObject(this, &UGuideLayerBase::OnEndAction);
+			BoxBaseWidget->OnCompleteActionEvent.AddDynamic(this, &UGuideLayerBase::OnEndGuide);
 		}
 	}
 
@@ -280,10 +289,23 @@ void UGuideLayerBase::SynchronizeProperties()
 		SetCircularShape(bShapeCircle);
 		SetOpacity(Opacity);
 
-		const FVector2D NewPos = ScreenPosition - FVector2D(GuideBoxOffset.Left, GuideBoxOffset.Top);
-		const FVector2D NewSize = GuideSize + FVector2D(GuideBoxOffset.Left + GuideBoxOffset.Right, GuideBoxOffset.Top + GuideBoxOffset.Bottom);
+		const FVector2D GuideWidgetPosition = ScreenPosition - FVector2D(GuideBoxOffset.Left, GuideBoxOffset.Top);
+		const FVector2D GuideWidgetSize = GuideSize + FVector2D(GuideBoxOffset.Left + GuideBoxOffset.Right, GuideBoxOffset.Top + GuideBoxOffset.Bottom);
 
-		SetMaterialTransform(FVector2D(1920, 1080), NewPos, NewSize);
+		FVector2D WidgetLeftTop = FVector2D(GuideWidgetPosition.X + GuideWidgetSize.X * 0.5f, GuideWidgetPosition.Y + GuideWidgetSize.Y * 0.5f);
+		FVector2D WidgetCenter_Pixel = WidgetLeftTop;
+		FVector2D WidgetSize_Pixel = GuideWidgetSize * 0.5f;
+
+		// UV 변환
+		FVector2D CenterUV = WidgetCenter_Pixel / FVector2D(1920, 1080);
+		FVector2D SizeUV = WidgetSize_Pixel / FVector2D(1920, 1080);
+
+		// 머티리얼 파라미터로 넘기기
+		if (ensure(MaterialInstance))
+		{
+			MaterialInstance->SetVectorParameterValue("Center", FLinearColor(CenterUV.X, CenterUV.Y, 0, 0));
+			MaterialInstance->SetVectorParameterValue("Size", FLinearColor(SizeUV.X, SizeUV.Y, 0, 0));
+		}
 	}
 #endif
 }

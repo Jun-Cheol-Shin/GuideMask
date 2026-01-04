@@ -20,7 +20,6 @@ void UGuideBoxBase::SetGuideWidget(UWidget* InWidget, const FGuideBoxActionParam
 	}*/
 
 	SetGuideAction(InActionParam);
-	OnInitializeBox();
 }
 
 void UGuideBoxBase::SetGuideAction(const FGuideBoxActionParameters& InActionParam)
@@ -42,9 +41,12 @@ void UGuideBoxBase::SetGuideAction(const FGuideBoxActionParameters& InActionPara
 	}
 }
 
-FReply UGuideBoxBase::OnStartedClick(const FGeometry& InGeometry, const FPointerEvent& InEvent)
+FReply UGuideBoxBase::NativeOnStartClickAction(const FGeometry& InGeometry, const FPointerEvent& InEvent)
 {
-	if (false == InGeometry.IsUnderLocation(InEvent.GetScreenSpacePosition())) return FReply::Unhandled();
+	if (false == InGeometry.IsUnderLocation(InEvent.GetScreenSpacePosition()))
+	{
+		return FReply::Unhandled();
+	}
 
 	TouchStartPos = InGeometry.AbsoluteToLocal(InEvent.GetScreenSpacePosition());
 
@@ -101,15 +103,23 @@ FReply UGuideBoxBase::OnStartedClick(const FGeometry& InGeometry, const FPointer
 			}
 		}
 
+		if (OnMouseDownEvent.IsBound())
+		{
+			OnMouseDownEvent.Broadcast(InGeometry, InEvent);
+		}
+
 		return FReply::Handled().CaptureMouse(TakeWidget());
 	}
 
 	return FReply::Unhandled();
 }
 
-FReply UGuideBoxBase::OnMoved(const FGeometry& InGeometry, const FPointerEvent& InEvent)
+FReply UGuideBoxBase::NativeOnMoveAction(const FGeometry& InGeometry, const FPointerEvent& InEvent)
 {
-	if (TouchStartPos.IsZero()) return FReply::Unhandled();
+	if (TouchStartPos.IsZero())
+	{
+		return FReply::Unhandled();
+	}
 
 	float DPIScale = UWidgetLayoutLibrary::GetViewportScale(this);
 
@@ -127,13 +137,18 @@ FReply UGuideBoxBase::OnMoved(const FGeometry& InGeometry, const FPointerEvent& 
 			{
 				SlateWidget->OnMouseMove(InGeometry, InEvent);
 				SlateWidget->OnTouchMoved(InGeometry, InEvent);
+
+				if (OnMouseMovedEvent.IsBound())
+				{
+					OnMouseMovedEvent.Broadcast(InGeometry, InEvent);
+				}
 			}
 		}
 
 		if (CorrectedDragThreshold <= MoveVec.Size())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Complete Drag!"));
-			OnEndedAction(InEvent);
+			NativeOnEndAction(InEvent);
 		}
 	}
 	break;
@@ -153,13 +168,18 @@ FReply UGuideBoxBase::OnMoved(const FGeometry& InGeometry, const FPointerEvent& 
 				{
 					SlateWidget->OnMouseMove(InGeometry, InEvent);
 					SlateWidget->OnTouchMoved(InGeometry, InEvent);
+
+					if (OnMouseMovedEvent.IsBound())
+					{
+						OnMouseMovedEvent.Broadcast(InGeometry, InEvent);
+					}
 				}
 			}
 
 			if (CorrectedDragThreshold <= MoveVec.Size())
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Complete Drag!"));
-				OnEndedAction(InEvent);
+				NativeOnEndAction(InEvent);
 			}
 		}
 
@@ -176,12 +196,12 @@ FReply UGuideBoxBase::OnMoved(const FGeometry& InGeometry, const FPointerEvent& 
 	return FReply::Handled();
 }
 
-FReply UGuideBoxBase::OnEndedClick(const FGeometry& InGeometry, const FPointerEvent& InEvent)
+FReply UGuideBoxBase::NativeOnEndClickAction(const FGeometry& InGeometry, const FPointerEvent& InEvent)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Pre Action"));
-
-	//FVector2D CurrentPosition = InGeometry.AbsoluteToLocal(InEvent.GetScreenSpacePosition());
-	if (false == InGeometry.IsUnderLocation(InEvent.GetScreenSpacePosition())) return FReply::Unhandled();
+	if (false == InGeometry.IsUnderLocation(InEvent.GetScreenSpacePosition()))
+	{
+		return FReply::Unhandled();
+	}
 
 	if (ActionWidget.IsValid())
 	{
@@ -235,14 +255,21 @@ FReply UGuideBoxBase::OnEndedClick(const FGeometry& InGeometry, const FPointerEv
 			}
 		}
 
-		OnEndedAction(InEvent);
+
+		if (OnMouseUpEvent.IsBound())
+		{
+			OnMouseUpEvent.Broadcast(InGeometry, InEvent);
+		}
+
+		NativeOnEndAction(InEvent);
+
 		return FReply::Handled().ReleaseMouseCapture();
 	}
 
 	return FReply::Unhandled();
 }
 
-FReply UGuideBoxBase::OnStartedKeyEvent(const FGeometry& InGeometry, const FKeyEvent& InEvent)
+FReply UGuideBoxBase::NativeOnStartKeyAction(const FGeometry& InGeometry, const FKeyEvent& InEvent)
 {
 	TSharedRef<SWidget> SlateWidget = ActionWidget->TakeWidget();
 	if (ensure(&SlateWidget))
@@ -250,10 +277,15 @@ FReply UGuideBoxBase::OnStartedKeyEvent(const FGeometry& InGeometry, const FKeyE
 		SlateWidget->OnKeyDown(InGeometry, InEvent);
 	}
 
+	if (OnKeyDownEvent.IsBound())
+	{
+		OnKeyDownEvent.Broadcast(InGeometry, InEvent);
+	}
+
 	return FReply::Handled();
 }
 
-FReply UGuideBoxBase::OnEndedKeyEvent(const FGeometry& InGeometry, const FKeyEvent& InEvent)
+FReply UGuideBoxBase::NativeOnEndKeyAction(const FGeometry& InGeometry, const FKeyEvent& InEvent)
 {
 	TSharedRef<SWidget> SlateWidget = ActionWidget->TakeWidget();
 	if (ensure(&SlateWidget))
@@ -261,27 +293,34 @@ FReply UGuideBoxBase::OnEndedKeyEvent(const FGeometry& InGeometry, const FKeyEve
 		SlateWidget->OnKeyUp(InGeometry, InEvent);
 	}
 
-	OnEndedAction();
+	if (OnKeyUpEvent.IsBound())
+	{
+		OnKeyUpEvent.Broadcast(InGeometry, InEvent);
+	}
+
+	NativeOnEndAction();
 
 	return FReply::Handled();
 }
 
-void UGuideBoxBase::OnEndedAction(const FPointerEvent& InEvent)
+void UGuideBoxBase::NativeOnEndAction(const FPointerEvent& InEvent)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Action End"));
-
 	if (false == InEvent.GetPressedButtons().IsEmpty())
 	{
 		NativeOnMouseLeave(InEvent);
 	}
 
-	if (ActionParam.ActionEvent.IsBound())
+	if (ActionParam.WidgetActionEvent.IsBound())
 	{
-		ActionParam.ActionEvent.Execute();
+		ActionParam.WidgetActionEvent.Execute();
+	}
+
+	if (OnCompleteActionEvent.IsBound())
+	{
+		OnCompleteActionEvent.Broadcast();
 	}
 
 	Clear();
-	OnPostAction.ExecuteIfBound();
 }
 
 
@@ -311,7 +350,7 @@ void UGuideBoxBase::NativeTick(const FGeometry& InGeometry, float InDeltaTime)
 	{
 		if (FPlatformTime::Seconds() > StartTime + ActionParam.HoldSeconds)
 		{
-			OnEndedAction();
+			NativeOnEndAction();
 		}
 
 		/*else if (nullptr != HoldProgressBar)
@@ -344,7 +383,7 @@ FReply UGuideBoxBase::NativeOnMouseButtonDown(const FGeometry& InGeometry, const
 		return FReply::Handled();
 	}
 
-	return OnStartedClick(InGeometry, InMouseEvent);
+	return NativeOnStartClickAction(InGeometry, InMouseEvent);
 }
 
 FReply UGuideBoxBase::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -362,7 +401,7 @@ FReply UGuideBoxBase::NativeOnMouseMove(const FGeometry& InGeometry, const FPoin
 	case EGuideActionType::Swipe_Left:
 	case EGuideActionType::Swipe_Right:
 	{
-		OnMoved(InGeometry, InMouseEvent);
+		NativeOnMoveAction(InGeometry, InMouseEvent);
 	}
 	break;
 	default:
@@ -390,7 +429,7 @@ FReply UGuideBoxBase::NativeOnMouseButtonUp(const FGeometry& InGeometry, const F
 		{
 			if (InMouseEvent.GetEffectingButton() == ActionParam.ActivationKey)
 			{
-				return OnEndedClick(InGeometry, InMouseEvent);
+				return NativeOnEndClickAction(InGeometry, InMouseEvent);
 			}
 		}
 		break;
@@ -418,7 +457,7 @@ FReply UGuideBoxBase::NativeOnTouchStarted(const FGeometry& InGeometry, const FP
 		return FReply::Handled();
 	}
 
-	return OnStartedClick(InGeometry, InGestureEvent);
+	return NativeOnStartClickAction(InGeometry, InGestureEvent);
 }
 
 FReply UGuideBoxBase::NativeOnTouchMoved(const FGeometry& InGeometry, const FPointerEvent& InGestureEvent)
@@ -436,7 +475,7 @@ FReply UGuideBoxBase::NativeOnTouchMoved(const FGeometry& InGeometry, const FPoi
 	case EGuideActionType::Swipe_Left:
 	case EGuideActionType::Swipe_Right:
 	{
-		OnMoved(InGeometry, InGestureEvent);
+		NativeOnMoveAction(InGeometry, InGestureEvent);
 	}
 	break;
 	default:
@@ -462,7 +501,7 @@ FReply UGuideBoxBase::NativeOnTouchEnded(const FGeometry& InGeometry, const FPoi
 		{
 		case EGuideActionType::DownAndUp:
 		{
-			return OnEndedClick(InGeometry, InGestureEvent);
+			return NativeOnEndClickAction(InGeometry, InGestureEvent);
 		}
 		break;
 		default:
@@ -487,12 +526,12 @@ FReply UGuideBoxBase::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEve
 				HoldProgressBar->GetParent()->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 			}*/
 
-			return OnStartedKeyEvent(InGeometry, InKeyEvent);
+			return NativeOnStartKeyAction(InGeometry, InKeyEvent);
 		}
 
 		else
 		{
-			return OnStartedKeyEvent(InGeometry, InKeyEvent);
+			return NativeOnStartKeyAction(InGeometry, InKeyEvent);
 		}
 	}
 
@@ -516,7 +555,7 @@ FReply UGuideBoxBase::NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent
 
 	else if (InKeyEvent.GetKey() == ActionParam.ActivationKey)
 	{
-		return OnEndedKeyEvent(InGeometry, InKeyEvent);
+		return NativeOnEndKeyAction(InGeometry, InKeyEvent);
 	}
 
 	return FReply::Unhandled();
@@ -580,7 +619,7 @@ void UGuideBoxBase::Clear()
 	TouchStartPos = FVector2D::Zero();
 	ActionWidget.Reset();
 
-	ActionParam.ActionEvent.Unbind();
+	ActionParam.WidgetActionEvent.Clear();
 	ActionParam.ActionType = EGuideActionType::None_Action;
 	ActionParam.DragThresholdVectorSize = 0.f;
 	ActionParam.HoldSeconds = 0.f;
@@ -611,7 +650,10 @@ void UGuideBoxBase::OnChangedVisibility(ESlateVisibility InVisiblity)
 
 void UGuideBoxBase::OnResizedViewport(FViewport* InViewport, uint32 InWindowMode /*?*/)
 {
-	if (nullptr == InViewport || nullptr == InViewport->GetClient()) return;
+	if (nullptr == InViewport || nullptr == InViewport->GetClient())
+	{
+		return;
+	}
 
 	ActionDPIScale = InViewport->GetClient()->GetDPIScale();
 	CorrectedDragThreshold = ActionParam.DragThresholdVectorSize * ActionDPIScale;
@@ -632,22 +674,26 @@ FPointerEvent UGuideBoxBase::CreateMouseLikePointerEventFromTouch(const FPointer
 
 void UGuideBoxBase::ForcedEndAction()
 {
-	if (ActionParam.ActionEvent.IsBound())
+	if (ActionParam.WidgetActionEvent.IsBound())
 	{
-		ActionParam.ActionEvent.Execute();
+		ActionParam.WidgetActionEvent.Execute();
+	}
+
+	if (OnCompleteActionEvent.IsBound())
+	{
+		OnCompleteActionEvent.Broadcast();
 	}
 
 	Clear();
-	OnPostAction.ExecuteIfBound();
 }
 
 bool UGuideBoxBase::IsDragType(EGuideActionType InType) const
 {
 	return  InType == EGuideActionType::Drag ||
-		InType == EGuideActionType::Swipe_Up ||
-		InType == EGuideActionType::Swipe_Down ||
-		InType == EGuideActionType::Swipe_Left ||
-		InType == EGuideActionType::Swipe_Right;
+			InType == EGuideActionType::Swipe_Up ||
+			InType == EGuideActionType::Swipe_Down ||
+			InType == EGuideActionType::Swipe_Left ||
+			InType == EGuideActionType::Swipe_Right;
 }
 
 bool UGuideBoxBase::IsCorrectSwipe(const FVector2D& InMoveVec)

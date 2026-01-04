@@ -10,7 +10,6 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "GuideMaskUIFunctionLibrary.generated.h"
 
-
 UENUM(BlueprintType)
 enum class EGuideWidgetPredTarget : uint8
 {
@@ -19,8 +18,8 @@ enum class EGuideWidgetPredTarget : uint8
 
 };
 
-DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(bool, FOnGetDynamicEntryDynamicEvent, EGuideWidgetPredTarget, InPredTarget, UObject*, InEntryItem);
 
+DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(bool, FOnGetDynamicEntryDynamicEvent, EGuideWidgetPredTarget, InPredTarget, UObject*, InEntryItem);
 
 USTRUCT(BlueprintType)
 struct FGuideDynamicWidgetPath
@@ -34,7 +33,6 @@ public:
 	UPROPERTY(EditAnywhere)
 	int NextChildIndex = -1;
 };
-
 
 
 class UGuideMaskRegister;

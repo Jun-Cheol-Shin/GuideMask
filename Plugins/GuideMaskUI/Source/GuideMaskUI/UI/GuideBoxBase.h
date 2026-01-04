@@ -8,7 +8,29 @@
 
 //class UProgressBar;
 
-DECLARE_DYNAMIC_DELEGATE(FOnActionDynamicEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGuideMouseDown,
+	const FGeometry&, InGeometry,
+	const FPointerEvent&, InMouseEvent);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGuideMouseMove,
+	const FGeometry&, InGeometry,
+	const FPointerEvent&, InMouseEvent);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGuideMouseUp,
+	const FGeometry&, InGeometry,
+	const FPointerEvent&, InMouseEvent);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGuideKeyBoardDown,
+	const FGeometry&, InGeometry,
+	const FKeyEvent&, InKeyEvent);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGuideKeyBoardUp,
+	const FGeometry&, InGeometry,
+	const FKeyEvent&, InKeyEvent);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCompleteGuideAction);
+
+DECLARE_DYNAMIC_DELEGATE(FOnWidgetAction);
 
 UENUM(BlueprintType)
 enum class EGuideActionType : uint8
@@ -44,7 +66,7 @@ public:
 	float HoldSeconds = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FOnActionDynamicEvent ActionEvent;
+	FOnWidgetAction WidgetActionEvent;
 };
 
 
@@ -54,9 +76,6 @@ class GUIDEMASKUI_API UGuideBoxBase : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	DECLARE_DELEGATE(FOnPostActionSignature)
-	FOnPostActionSignature OnPostAction;
-
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
 	void SetGuideWidget(UWidget* InWidget, const FGuideBoxActionParameters& InActionParam = FGuideBoxActionParameters());
 
@@ -79,13 +98,33 @@ public:
 	void ForcedEndAction();
 	
 protected:
-	virtual void OnInitializeBox() {};
-	virtual FReply OnStartedClick(const FGeometry& InGeometry, const FPointerEvent& InEvent);
-	virtual FReply OnMoved(const FGeometry& InGeometry, const FPointerEvent& InEvent);
-	virtual FReply OnEndedClick(const FGeometry& InGeometry, const FPointerEvent& InEvent);
-	virtual void OnEndedAction(const FPointerEvent& InEvent = FPointerEvent());
-	virtual FReply OnStartedKeyEvent(const FGeometry& InGeometry, const FKeyEvent& InEvent);
-	virtual FReply OnEndedKeyEvent(const FGeometry& InGeometry, const FKeyEvent& InEvent);
+	virtual void NativeOnEndAction(const FPointerEvent& InEvent = FPointerEvent());
+
+	virtual FReply NativeOnStartClickAction(const FGeometry& InGeometry, const FPointerEvent& InEvent);
+	virtual FReply NativeOnMoveAction(const FGeometry& InGeometry, const FPointerEvent& InEvent);
+	virtual FReply NativeOnEndClickAction(const FGeometry& InGeometry, const FPointerEvent& InEvent);
+	virtual FReply NativeOnStartKeyAction(const FGeometry& InGeometry, const FKeyEvent& InEvent);
+	virtual FReply NativeOnEndKeyAction(const FGeometry& InGeometry, const FKeyEvent& InEvent);
+
+public:
+	UPROPERTY(BlueprintAssignable, Category = "GuideBoxBase|Events")
+	FOnGuideMouseDown OnMouseDownEvent;
+
+	UPROPERTY(BlueprintAssignable, Category = "GuideBoxBase|Events")
+	FOnGuideMouseMove OnMouseMovedEvent;
+
+	UPROPERTY(BlueprintAssignable, Category = "GuideBoxBase|Events")
+	FOnGuideMouseUp OnMouseUpEvent;
+
+	UPROPERTY(BlueprintAssignable, Category = "GuideBoxBase|Events")
+	FOnGuideKeyBoardDown OnKeyDownEvent;
+
+	UPROPERTY(BlueprintAssignable, Category = "GuideBoxBase|Events")
+	FOnGuideKeyBoardUp OnKeyUpEvent;
+
+	UPROPERTY(BlueprintAssignable, Category = "GuideBoxBase|Events")
+	FOnCompleteGuideAction OnCompleteActionEvent;
+
 	
 protected:
 	virtual void NativeConstruct() override;
@@ -103,11 +142,12 @@ protected:
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
-
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 
 private:
+	FPointerEvent CreateMouseLikePointerEventFromTouch(const FPointerEvent& InTouchEvent);
+
 	void Clear();
 	
 	void OnResizedViewport(FViewport* InViewport, uint32 InWindowMode /*?*/);
@@ -116,27 +156,16 @@ private:
 	bool IsCorrectSwipe(const FVector2D& InMoveVec);
 	bool IsDragType(EGuideActionType InType) const;
 
-	FPointerEvent CreateMouseLikePointerEventFromTouch(const FPointerEvent& InTouchEvent);
-
 protected:
 	TWeakObjectPtr<UWidget> ActionWidget = nullptr;
-
 	FGuideBoxActionParameters ActionParam {};
 
-	//FKey ActivationKey {};
-	//EGuideActionType ActionType {};
-	//double HoldSeconds = 0.f;
-	//float DragThreshold = 100.f;
-
+private:
+	double StartTime = 0.f;
 	FVector2D TouchStartPos = FVector2D();
 	float ActionDPIScale = 0.f;
 	float CorrectedDragThreshold = 0.f;
-	double StartTime = 0.f;
 
 	EButtonClickMethod::Type CachedClickMethod = EButtonClickMethod::DownAndUp;
 	EButtonTouchMethod::Type CachedTouchMethod = EButtonTouchMethod::DownAndUp;
-
-protected:
-	//UPROPERTY(meta = (BindWidget, AllowPrivateAccess = "true"))
-	//UProgressBar* HoldProgressBar = nullptr;
 };

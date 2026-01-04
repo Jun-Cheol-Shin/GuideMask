@@ -19,9 +19,6 @@ class GUIDEMASKUI_API UGuideLayerBase : public UUserWidget
 {
 	GENERATED_BODY()
 
-	friend class UGuideMaskRegister;
-
-
 public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
 	void SetGuide(UWidget* InWidget, const FGuideBoxActionParameters& InParam = FGuideBoxActionParameters());
@@ -38,23 +35,34 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
 	void SetBoxOffset(const FMargin& InMargin);
 
+#if WITH_EDITOR
+public:
+	void SetPreviewGuide(const FGeometry& InViewportGeometry, UWidget* InWidget);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Preview Guide"))
+	void BP_OnPreviewGuide(const FVector2D& InPreviewWidgetPosition, const FVector2D& InPreviewWidgetSize);
+
+	/**
+	 * Called whenever a preview layer is made for this widget in the designer.
+	 */
+	TFunction<void(const FVector2D&, const FVector2D&)> OnPreviewGuideLayerFunc;
+#endif
 
 protected:
-	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category = "Guide Layer", meta = (DisplayName = "On Start Action"))
-	void OnStartAction(UWidget* InWidget, const FGuideBoxActionParameters& InParam);
-	virtual void OnStartAction_Implementation(UWidget* InWidget, const FGuideBoxActionParameters& InParam) {};
+	virtual void SetGuideInternal(const FGeometry& InViewportGeometry, UWidget* InWidget);
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category = "Guide Layer", meta = (DisplayName = "On End Action"))
-	void OnEndAction();
-	virtual void OnEndAction_Implementation() {};
+protected:
+	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, meta = (DisplayName = "On Start Action"))
+	void OnStartGuide(UWidget* InWidget, const FGuideBoxActionParameters& InParam);
+	virtual void OnStartGuide_Implementation(UWidget* InWidget, const FGuideBoxActionParameters& InParam) {};
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, meta = (DisplayName = "On End Action"))
+	void OnEndGuide();
+	virtual void OnEndGuide_Implementation() {};
 
 	virtual FReply OnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent);
 	virtual FReply OnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InEvent);
 	virtual FReply OnTouchEnded(const FGeometry& InGeometry, const FPointerEvent& InEvent);
-
-	virtual void SetGuideInternal(const FGeometry& InViewportGeometry, UWidget* InWidget);
-	virtual void SetGuideLayer(const FVector2D& InScreenSize, const FVector2D& InTargetLoc, const FVector2D& InTargetSize);
-	virtual void SetMaterialTransform(const FVector2D& InViewportSize, const FVector2D& InPosiiton, const FVector2D& InWidgetSize);
 
 protected:
 	virtual void NativeConstruct() override;

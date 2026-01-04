@@ -143,7 +143,7 @@ void UGuideMaskRegister::CreatePreviewLayer(const FGeometry& InViewportGeometry)
 			TargetWidget = false == EntryBox->GetAllEntries().IsEmpty() ? *EntryBox->GetAllEntries().begin() : nullptr;
 		}
 
-		Layer->SetGuideInternal(InViewportGeometry, nullptr != TargetWidget ? TargetWidget : Target);
+		Layer->SetPreviewGuide(InViewportGeometry, nullptr != TargetWidget ? TargetWidget : Target);
 	}
 }
 
