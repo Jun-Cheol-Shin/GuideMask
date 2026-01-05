@@ -21,6 +21,13 @@ class GUIDEMASKUI_API UGuideLayerBase : public UUserWidget
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	FVector2D GetWidgetPosition() const;
+
+
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	FVector2D GetWidgetSize() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
 	void SetGuide(UWidget* InWidget, const FGuideBoxActionParameters& InParameter);
 
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic)

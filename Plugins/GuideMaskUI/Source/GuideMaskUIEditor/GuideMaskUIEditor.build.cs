@@ -41,7 +41,8 @@ public class GuideMaskUIEditor : ModuleRules
                 "PropertyEditor",
 				"Slate",
 				"SlateCore",
-				"UMG"
+				"UMG",
+                "UnrealEd"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

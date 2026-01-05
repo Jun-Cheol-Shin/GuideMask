@@ -20,10 +20,12 @@ public:
     virtual void CustomizeChildren(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils) override;
 
 private:
-    TSharedPtr<IPropertyHandle> ContainerHandle;
-    TSharedPtr<IPropertyHandle> ChildrenHandle;
-
     // ---- Header 요약용 ----
     FString GetContainerNameText() const;
     FString GetContainerEntryClassText() const;
+    UClass* GetEntryClass() const;
+
+private:
+    TSharedPtr<IPropertyHandle> ContainerHandle;
+    TSharedPtr<IPropertyHandle> ChildrenHandle;
 };

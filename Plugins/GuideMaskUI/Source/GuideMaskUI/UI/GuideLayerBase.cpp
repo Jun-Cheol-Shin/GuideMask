@@ -79,8 +79,7 @@ void UGuideLayerBase::SetGuide(UWidget* InWidget, const FGuideBoxActionParameter
 	}
 
 	GuideWidget = InWidget;
-	FGeometry ViewportGeo = UWidgetLayoutLibrary::GetViewportWidgetGeometry(GetWorld());
-	SetGuideInternal(ViewportGeo, InWidget);
+	SetGuideInternal(UWidgetLayoutLibrary::GetViewportWidgetGeometry(this), InWidget);
 
 	if (nullptr != BoxBaseWidget && InParameter.ActionType != EGuideActionType::None_Action)
 	{
@@ -111,6 +110,7 @@ void UGuideLayerBase::SetGuideInternal(const FGeometry& InViewportGeometry, UWid
 	ForceLayoutPrepass();
 	InWidget->ForceLayoutPrepass();
 
+
 	// Get target location
 	FVector2D TargetLocalPosition = InViewportGeometry.AbsoluteToLocal(InWidget->GetTickSpaceGeometry().AbsolutePosition);
 	FVector2D TargetLocation = InViewportGeometry.GetLocalPositionAtCoordinates(FVector2D(0, 0)) + TargetLocalPosition;
@@ -125,16 +125,6 @@ void UGuideLayerBase::SetGuideInternal(const FGeometry& InViewportGeometry, UWid
 
 	const FVector2D GuideWidgetPosition = TargetLocation - FVector2D(GuideBoxOffset.Left, GuideBoxOffset.Top);
 	const FVector2D GuideWidgetSize = TargetLocalSize + FVector2D(GuideBoxOffset.Left + GuideBoxOffset.Right, GuideBoxOffset.Top + GuideBoxOffset.Bottom);
-
-	if (nullptr != GuideBoxPanel)
-	{
-		if (UCanvasPanelSlot* PanelSlot = Cast<UCanvasPanelSlot>(GuideBoxPanel->Slot))
-		{
-			PanelSlot->SetAnchors(FAnchors(0, 0, 0, 0));
-			PanelSlot->SetSize(GuideWidgetPosition);
-			PanelSlot->SetPosition(GuideWidgetSize);
-		}
-	}
 
 	FVector2D WidgetLeftTop = FVector2D(GuideWidgetPosition.X + GuideWidgetSize.X * 0.5f, GuideWidgetPosition.Y + GuideWidgetSize.Y * 0.5f);
 	FVector2D WidgetCenter_Pixel = WidgetLeftTop;
@@ -151,7 +141,27 @@ void UGuideLayerBase::SetGuideInternal(const FGeometry& InViewportGeometry, UWid
 		MaterialInstance->SetVectorParameterValue("Size", FLinearColor(SizeUV.X, SizeUV.Y, 0, 0));
 	}
 
+	if (nullptr != GuideBoxPanel)
+	{
+		if (UCanvasPanelSlot* PanelSlot = Cast<UCanvasPanelSlot>(GuideBoxPanel->Slot))
+		{
+			PanelSlot->SetAnchors(FAnchors(0, 0, 0, 0));
+			PanelSlot->SetSize(GuideWidgetSize);
+			PanelSlot->SetPosition(GuideWidgetPosition);
+		}
+	}
 
+}
+
+FVector2D UGuideLayerBase::GetWidgetPosition() const
+{
+	return FVector2D();
+}
+
+FVector2D UGuideLayerBase::GetWidgetSize() const
+{
+
+	return FVector2D();
 }
 
 void UGuideLayerBase::SetEnableAnim(bool bIsEnable)
@@ -192,8 +202,7 @@ void UGuideLayerBase::SetBoxOffset(const FMargin& InMargin)
 
 	if (true == GuideWidget.IsValid())
 	{
-		FGeometry ViewportGeo = UWidgetLayoutLibrary::GetViewportWidgetGeometry(GetWorld());
-		SetGuideInternal(ViewportGeo, GuideWidget.Get());
+		SetGuideInternal(UWidgetLayoutLibrary::GetViewportWidgetGeometry(this), GuideWidget.Get());
 	}
 }
 
@@ -317,7 +326,6 @@ void UGuideLayerBase::OnResizedViewport(FViewport* InViewport, uint32 InMessage)
 {
 	if (true == GuideWidget.IsValid())
 	{
-		FGeometry ViewportGeo = UWidgetLayoutLibrary::GetViewportWidgetGeometry(GetWorld());
-		SetGuideInternal(ViewportGeo, GuideWidget.Get());
+		SetGuideInternal(UWidgetLayoutLibrary::GetViewportWidgetGeometry(this), GuideWidget.Get());
 	}
 }
