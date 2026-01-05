@@ -20,10 +20,10 @@ struct FGuideHierarchyNode
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (DisplayName = "Entry Based Container"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GuideHierarchyNode", meta = (DisplayName = "Entry Based Container"))
 	UWidget* Container = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (DisplayName = "Children"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GuideHierarchyNode", meta = (DisplayName = "Children"))
 	TArray<UWidget*> Children {};
 };
 
@@ -35,13 +35,13 @@ class GUIDEMASKUI_API UGuideMaskRegister : public UContentWidget
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideMaskRegister")
 	bool IsContains(const FName& InTag) const;
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideMaskRegister")
 	TArray<FName> GetTagList() const;
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideMaskRegister")
 	UWidget* GetTagWidget(const FName& InGuideTag);
 
 	bool GetGuideWidgetTree(OUT TArray<FGuideHierarchyNode>& OutWidgetTree, const FName& InGuideTag);
@@ -82,17 +82,17 @@ protected:
 
 protected:
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(EditInstanceOnly, meta = (GetOptions = "GetTagOptions", DisplayName = "Tag"))
+	UPROPERTY(EditInstanceOnly, Category = "GuideMaskRegister", meta = (GetOptions = "GetTagOptions", DisplayName = "Tag"))
 	FName PreviewTag;
 
-	UPROPERTY(EditInstanceOnly, meta = (GetOptions = "GetNestedWidgetOptions", DisplayName = "Target Widget"))
+	UPROPERTY(EditInstanceOnly, Category = "GuideMaskRegister", meta = (GetOptions = "GetNestedWidgetOptions", DisplayName = "Target Widget"))
 	FName PreviewWidget;
 
-	UPROPERTY(VisibleInstanceOnly)
+	UPROPERTY(VisibleInstanceOnly, Category = "GuideMaskRegister")
 	TArray<FGuideHierarchyNode> WidgetHierarchy {};
 
 #endif
-	UPROPERTY(EditInstanceOnly)
+	UPROPERTY(EditInstanceOnly, Category = "GuideMaskRegister")
 	TMap<FName, UWidget*> TagWidgetList;
 
 private:

@@ -24,9 +24,9 @@ public:
 	UGuideMaskSettings(const FObjectInitializer& ObjectInitializer);
 
 public:
-	UPROPERTY(EditAnywhere, Config, meta = (AllowedClasses = "/Script/GuideMaskUI.GuideLayerBase"))
+	UPROPERTY(EditAnywhere, Config, Category = "GuideMaskSetting", meta = (AllowedClasses = "/Script/GuideMaskUI.GuideLayerBase"))
 	TSoftClassPtr<UGuideLayerBase> DefaultLayer;
 
-	UPROPERTY(EditAnywhere, Config, meta = (AllowedClasses = "/Script/GuideMaskUI.GuideBoxBase"))
+	UPROPERTY(EditAnywhere, Config, Category = "GuideMaskSetting", meta = (AllowedClasses = "/Script/GuideMaskUI.GuideBoxBase"))
 	TSoftClassPtr<UGuideBoxBase> DefaultBox;
 };

@@ -29,10 +29,10 @@ struct FGuideDynamicWidgetPath
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "GuideDynamicWidgetPath")
 	FOnGetDynamicEntryDynamicEvent Predicate;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "GuideDynamicWidgetPath")
 	int NextChildIndex = -1;
 };
 

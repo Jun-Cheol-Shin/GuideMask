@@ -20,26 +20,26 @@ class GUIDEMASKUI_API UGuideLayerBase : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
 	FVector2D GetWidgetPosition() const;
 
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
 	FVector2D GetWidgetSize() const;
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
 	void SetGuide(UWidget* InWidget, const FGuideBoxActionParameters& InParameter);
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
 	void SetEnableAnim(bool bIsEnable);
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
 	void SetCircularShape(bool bIsEnable);
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
 	void SetOpacity(float InOpacity);
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
 	void SetBoxOffset(const FMargin& InMargin);
 
 #if WITH_EDITOR

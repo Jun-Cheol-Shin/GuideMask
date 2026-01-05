@@ -55,19 +55,19 @@ struct FGuideBoxActionParameters
 public:
 	FGuideBoxActionParameters() = default;
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GuideBoxAction")
 	EGuideActionType ActionType = EGuideActionType::None_Action;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "EGuideActionType::DownAndUp == ActionType || EGuideActionType::Hold == ActionType", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GuideBoxAction", meta = (EditCondition = "EGuideActionType::DownAndUp == ActionType || EGuideActionType::Hold == ActionType", EditConditionHides))
 	FKey ActivationKey;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "EGuideActionType::DownAndUp != ActionType && EGuideActionType::KeyEvent != ActionType && EGuideActionType::Hold != ActionType", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GuideBoxAction", meta = (EditCondition = "EGuideActionType::DownAndUp != ActionType && EGuideActionType::KeyEvent != ActionType && EGuideActionType::Hold != ActionType", EditConditionHides))
 	float DragThresholdVectorSize = 0.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "EGuideActionType::Hold == ActionType", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GuideBoxAction", meta = (EditCondition = "EGuideActionType::Hold == ActionType", EditConditionHides))
 	float HoldSeconds = 0.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GuideBoxAction")
 	FOnWidgetAction WidgetActionEvent;
 };
 
@@ -78,25 +78,25 @@ class GUIDEMASKUI_API UGuideBoxBase : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideBoxBase")
 	void SetGuideWidget(UWidget* InWidget);
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideBoxBase")
 	void SetGuideAction(const FGuideBoxActionParameters& InActionParam);
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideBoxBase")
 	EGuideActionType GetActionType() const { return ActionParam.ActionType; }
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideBoxBase")
 	float GetCurrentHoldSeconds() const { return ActionParam.HoldSeconds; }
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideBoxBase")
 	FKey GetCurrentActionKey() const { return ActionParam.ActivationKey; }
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideBoxBase")
 	UWidget* GetActionWidget() const { return ActionWidget.IsValid() ? ActionWidget.Get() : nullptr; }
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic)
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideBoxBase")
 	void ForcedEndAction();
 	
 protected:
