@@ -20,26 +20,43 @@ class GUIDEMASKUI_API UGuideLayerBase : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
-	FVector2D GetWidgetPosition() const;
-
-
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
-	FVector2D GetWidgetSize() const;
-
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
+	UFUNCTION(BlueprintCallable, Category = "GuideLayerBase")
 	void SetGuide(UWidget* InWidget, const FGuideBoxActionParameters& InParameter);
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
+
+	UFUNCTION(BlueprintCallable, Category = "GuideLayerBase")
+	FVector2D GetWidgetPosition() const;
+
+	UFUNCTION(BlueprintCallable, Category = "GuideLayerBase")
+	FVector2D GetWidgetSize() const;
+
+
+	UFUNCTION(BlueprintCallable, Category = "GuideLayerBase")
 	void SetEnableAnim(bool bIsEnable);
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
+	UFUNCTION(BlueprintCallable, Category = "GuideLayerBase")
+	bool IsEnabledAnim() const;
+
+
+
+	UFUNCTION(BlueprintCallable, Category = "GuideLayerBase")
 	void SetCircularShape(bool bIsEnable);
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
+	UFUNCTION(BlueprintCallable, Category = "GuideLayerBase")
+	bool IsCircularShape() const;
+
+
+	UFUNCTION(BlueprintCallable, Category = "GuideLayerBase")
 	void SetOpacity(float InOpacity);
 
-	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GuideLayerBase")
+	UFUNCTION(BlueprintCallable, Category = "GuideLayerBase")
+	float GetOpacity() const;
+
+
+	UFUNCTION(BlueprintCallable, Category = "GuideLayerBase")
+	const FMargin& GetBoxOffset() const;
+
+	UFUNCTION(BlueprintCallable, Category = "GuideLayerBase")
 	void SetBoxOffset(const FMargin& InMargin);
 
 #if WITH_EDITOR
@@ -59,11 +76,11 @@ protected:
 	virtual void SetGuideInternal(const FGeometry& InViewportGeometry, UWidget* InWidget);
 
 protected:
-	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, meta = (DisplayName = "On Start Action"))
+	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On Start Action"))
 	void OnStartGuide(UWidget* InWidget, const FGuideBoxActionParameters& InParam);
 	virtual void OnStartGuide_Implementation(UWidget* InWidget, const FGuideBoxActionParameters& InParam) {};
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, meta = (DisplayName = "On End Action"))
+	UFUNCTION(BlueprintNativeEvent, meta = (DisplayName = "On End Action"))
 	void OnEndGuide();
 	virtual void OnEndGuide_Implementation() {};
 
@@ -85,16 +102,16 @@ private:
 	void OnResizedViewport(FViewport* InViewport, uint32 InMessage);
 	
 protected:
-	UPROPERTY(EditDefaultsOnly, meta = (Category = "Layer Setting", AllowPrivateAccess = "true", ClampMin = "0", ClampMax = "1"))
+	UPROPERTY(EditDefaultsOnly, BlueprintSetter = SetOpacity, BlueprintGetter = GetOpacity, meta = (Category = "Layer Setting", AllowPrivateAccess = "true", ClampMin = "0", ClampMax = "1"))
 	float Opacity = 0.8f;
 
-	UPROPERTY(EditDefaultsOnly, meta = (Category = "Layer Setting", AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintSetter = SetCircularShape, BlueprintGetter = IsCircularShape, meta = (Category = "Layer Setting", AllowPrivateAccess = "true"))
 	bool bShapeCircle = false;
 
-	UPROPERTY(EditDefaultsOnly, meta = (Category = "Layer Setting", AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintSetter = SetEnableAnim, BlueprintGetter = IsEnabledAnim, meta = (Category = "Layer Setting", AllowPrivateAccess = "true"))
 	bool bAnimated = false;
 
-	UPROPERTY(EditDefaultsOnly, meta = (Category = "Layer Setting", AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintSetter = SetBoxOffset, BlueprintGetter = GetBoxOffset, meta = (Category = "Layer Setting", AllowPrivateAccess = "true"))
 	FMargin GuideBoxOffset;
 
 

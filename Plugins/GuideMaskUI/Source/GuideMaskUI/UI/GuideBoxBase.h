@@ -53,8 +53,6 @@ struct FGuideBoxActionParameters
 	GENERATED_BODY()
 
 public:
-	FGuideBoxActionParameters() = default;
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GuideBoxAction")
 	EGuideActionType ActionType = EGuideActionType::None_Action;
 
@@ -160,6 +158,8 @@ private:
 
 protected:
 	TWeakObjectPtr<UWidget> ActionWidget = nullptr;
+
+	UPROPERTY(BlueprintReadWrite, BlueprintSetter = SetGuideAction)
 	FGuideBoxActionParameters ActionParam {};
 
 private:

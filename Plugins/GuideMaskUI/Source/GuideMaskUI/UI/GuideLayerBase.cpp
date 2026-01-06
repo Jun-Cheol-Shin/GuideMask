@@ -79,7 +79,7 @@ void UGuideLayerBase::SetGuide(UWidget* InWidget, const FGuideBoxActionParameter
 	}
 
 	GuideWidget = InWidget;
-	SetGuideInternal(UWidgetLayoutLibrary::GetViewportWidgetGeometry(this), InWidget);
+	SetGuideInternal(UWidgetLayoutLibrary::GetViewportWidgetGeometry(GetWorld()), InWidget);
 
 	if (nullptr != BoxBaseWidget && InParameter.ActionType != EGuideActionType::None_Action)
 	{
@@ -155,11 +155,38 @@ void UGuideLayerBase::SetGuideInternal(const FGeometry& InViewportGeometry, UWid
 
 FVector2D UGuideLayerBase::GetWidgetPosition() const
 {
+	if (true == GuideWidget.IsValid())
+	{
+		const FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(GetWorld());
+
+		// Get target location
+		FVector2D TargetLocalPosition = ViewportGeometry.AbsoluteToLocal(GuideWidget->GetTickSpaceGeometry().AbsolutePosition);
+		FVector2D TargetLocation = ViewportGeometry.GetLocalPositionAtCoordinates(FVector2D(0, 0)) + TargetLocalPosition;
+
+		return TargetLocation;
+	}
+
+
 	return FVector2D();
 }
 
 FVector2D UGuideLayerBase::GetWidgetSize() const
 {
+	if (true == GuideWidget.IsValid())
+	{
+		const FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(GetWorld());
+
+		// Get target location
+		FVector2D TargetLocalPosition = ViewportGeometry.AbsoluteToLocal(GuideWidget->GetTickSpaceGeometry().AbsolutePosition);
+		FVector2D TargetLocation = ViewportGeometry.GetLocalPositionAtCoordinates(FVector2D(0, 0)) + TargetLocalPosition;
+
+		// Get target size
+		FVector2D TargetLocalBottomRight = ViewportGeometry.AbsoluteToLocal(GuideWidget->GetTickSpaceGeometry().LocalToAbsolute(GuideWidget->GetTickSpaceGeometry().GetLocalSize()));
+		FVector2D TargetLocalTopLeft = ViewportGeometry.AbsoluteToLocal(GuideWidget->GetTickSpaceGeometry().GetAbsolutePosition());
+		FVector2D TargetLocalSize = TargetLocalBottomRight - TargetLocalTopLeft;
+
+		return TargetLocalSize;
+	}
 
 	return FVector2D();
 }
@@ -175,6 +202,10 @@ void UGuideLayerBase::SetEnableAnim(bool bIsEnable)
 	}
 }
 
+bool UGuideLayerBase::IsEnabledAnim() const
+{
+	return bAnimated;
+}
 
 void UGuideLayerBase::SetCircularShape(bool bIsEnable)
 {
@@ -184,6 +215,11 @@ void UGuideLayerBase::SetCircularShape(bool bIsEnable)
 	{
 		MaterialInstance->SetScalarParameterValue(TEXT("Shape"), true == bShapeCircle ? 1.f : 0.f);
 	}
+}
+
+bool UGuideLayerBase::IsCircularShape() const
+{
+	return bShapeCircle;
 }
 
 void UGuideLayerBase::SetOpacity(float InOpacity)
@@ -196,14 +232,24 @@ void UGuideLayerBase::SetOpacity(float InOpacity)
 	}
 }
 
+float UGuideLayerBase::GetOpacity() const
+{
+	return Opacity;
+}
+
 void UGuideLayerBase::SetBoxOffset(const FMargin& InMargin)
 {
 	GuideBoxOffset = InMargin;
 
 	if (true == GuideWidget.IsValid())
 	{
-		SetGuideInternal(UWidgetLayoutLibrary::GetViewportWidgetGeometry(this), GuideWidget.Get());
+		SetGuideInternal(UWidgetLayoutLibrary::GetViewportWidgetGeometry(GetWorld()), GuideWidget.Get());
 	}
+}
+
+const FMargin& UGuideLayerBase::GetBoxOffset() const
+{
+	return GuideBoxOffset;
 }
 
 void UGuideLayerBase::NativeConstruct()
@@ -326,6 +372,6 @@ void UGuideLayerBase::OnResizedViewport(FViewport* InViewport, uint32 InMessage)
 {
 	if (true == GuideWidget.IsValid())
 	{
-		SetGuideInternal(UWidgetLayoutLibrary::GetViewportWidgetGeometry(this), GuideWidget.Get());
+		SetGuideInternal(UWidgetLayoutLibrary::GetViewportWidgetGeometry(GetWorld()), GuideWidget.Get());
 	}
 }

@@ -50,7 +50,7 @@ void FGuideHierarchyNodeCustomization::CustomizeHeader(TSharedRef<IPropertyHandl
                                     return FVector2D(float(Depth) * 12.f, 0);
                                 })
                     ]
-                    + SHorizontalBox::Slot().AutoWidth()
+                + SHorizontalBox::Slot().AutoWidth()
                     [
                         SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT(" Level %d"), Depth)))
                     ]
@@ -66,7 +66,7 @@ void FGuideHierarchyNodeCustomization::CustomizeHeader(TSharedRef<IPropertyHandl
                                         *WidgetName, *EntryClassName));
                                 })
                     ]
-                    + SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
+                + SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
                     [
                         SNew(SButton)
                             .Text(FText::FromString(TEXT("Open Entry Class BP")))
