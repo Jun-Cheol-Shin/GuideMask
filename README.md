@@ -42,4 +42,4 @@
 
 ### If you need more information, Please download to the sample project!
 ### If you need more class information.. 
-[Document](#Document)
+[Document](https://github.com/Jun-Cheol-Shin/GuideMask/wiki/Document)
