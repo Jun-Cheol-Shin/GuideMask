@@ -271,32 +271,35 @@ void UGuideLayerBase::NativeConstruct()
 	if (nullptr != GuideBoxPanel)
 	{
 		GuideBoxPanel->SetVisibility(ESlateVisibility::Collapsed);
-	}
 
-	const UGuideMaskSettings* Settings = GetDefault<UGuideMaskSettings>();
-	if (ensureAlways(Settings))
-	{
-		if (!ensureAlwaysMsgf(Settings->DefaultBox.ToSoftObjectPath().IsValid(), 
-			TEXT("Invalid Box base class in the project settings.")))
+		if (GuideBoxPanel->GetChildrenCount() <= 0)
 		{
-			return;
-		}
-
-		TSubclassOf<UGuideBoxBase> BoxBaseClass = Settings->DefaultBox.LoadSynchronous();
-
-		BoxBaseWidget = CreateWidget<UGuideBoxBase>(this, BoxBaseClass);
-
-		if (ensure(BoxBaseWidget))
-		{
-			if (USizeBoxSlot* PanelSlot = Cast<USizeBoxSlot>(GuideBoxPanel->AddChild(BoxBaseWidget)))
+			const UGuideMaskSettings* Settings = GetDefault<UGuideMaskSettings>();
+			if (ensureAlways(Settings))
 			{
-				PanelSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
-				PanelSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
+				if (!ensureAlwaysMsgf(Settings->DefaultBox.ToSoftObjectPath().IsValid(),
+					TEXT("Invalid Box base class in the project settings.")))
+				{
+					return;
+				}
+
+				TSubclassOf<UGuideBoxBase> BoxBaseClass = Settings->DefaultBox.LoadSynchronous();
+
+				BoxBaseWidget = CreateWidget<UGuideBoxBase>(this, BoxBaseClass);
+
+				if (ensure(BoxBaseWidget))
+				{
+					if (USizeBoxSlot* PanelSlot = Cast<USizeBoxSlot>(GuideBoxPanel->AddChild(BoxBaseWidget)))
+					{
+						PanelSlot->SetHorizontalAlignment(EHorizontalAlignment::HAlign_Fill);
+						PanelSlot->SetVerticalAlignment(EVerticalAlignment::VAlign_Fill);
+					}
+
+
+					BoxBaseWidget->SetVisibility(ESlateVisibility::Visible);
+					BoxBaseWidget->OnCompleteActionEvent.AddDynamic(this, &UGuideLayerBase::OnEndGuide);
+				}
 			}
-
-
-			BoxBaseWidget->SetVisibility(ESlateVisibility::Visible);
-			BoxBaseWidget->OnCompleteActionEvent.AddDynamic(this, &UGuideLayerBase::OnEndGuide);
 		}
 	}
 
